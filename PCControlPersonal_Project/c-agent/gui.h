@@ -46,11 +46,12 @@ private:
     HWND hBtnMin_, hBtnClose_;
 
     // Sidebar buttons
-    HWND hBtnDash_, hBtnSettings_, hBtnTasks_;
+    HWND hBtnDash_, hBtnGames_, hBtnSettings_, hBtnTasks_;
     int current_page_;
 
     // Dashboard controls
     HWND hDashPanel_;
+    HWND hGamesPanel_;
 
     // Dashboard dynamic state values for custom GDI painting
     std::wstring cpu_val_;
@@ -85,12 +86,14 @@ private:
     void create_window(HINSTANCE hInstance);
     void create_sidebar();
     void create_dashboard();
+    void create_games();
     void create_settings();
     void create_tasks();
     void switch_page(int idx);
     void update_task_list();
     void update_bottom_bar();
     void draw_dashboard_panel(HDC hdc);
+    void draw_games_panel(HDC hdc);
 
     static AgentGUI* self_;
     static const int SIDEBAR_W = 200; // Sidebar is 200px wide matching Python agent

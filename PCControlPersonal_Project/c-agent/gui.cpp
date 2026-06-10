@@ -265,8 +265,8 @@ AgentGUI::AgentGUI(HINSTANCE hInst, const std::string& aid)
     : hInst_(hInst), hWnd_(nullptr), hContent_(nullptr),
       hStatusLabelBottom_(nullptr), visible_(false), agent_id_(aid), current_page_(0),
       hBtnMin_(nullptr), hBtnClose_(nullptr),
-      hBtnDash_(nullptr), hBtnSettings_(nullptr), hBtnTasks_(nullptr),
-      hDashPanel_(nullptr),
+      hBtnDash_(nullptr), hBtnGames_(nullptr), hBtnSettings_(nullptr), hBtnTasks_(nullptr),
+      hDashPanel_(nullptr), hGamesPanel_(nullptr),
       cpu_val_(L"0.0%"), ram_val_(L"0.0%"), disk_val_(L"0.0%"),
       cpu_pct_(0), ram_pct_(0), disk_pct_(0),
       battery_(L"N/A"), network_(L"N/A"), uptime_(L"N/A"),
@@ -352,23 +352,27 @@ void AgentGUI::create_sidebar() {
         return h;
     };
 
-    hBtnDash_ = mkbtn(IDC_BTN_DASH, L"\U0001F3E0  Dashboard", 120);
-    hBtnTasks_ = mkbtn(IDC_BTN_TASKS, L"\U0001F4CB  Tasks", 168);
-    hBtnSettings_ = mkbtn(IDC_BTN_SETT, L"\u2699  Settings", 216);
+    hBtnDash_ = mkbtn(IDC_BTN_DASH, L"\u25C6  Dashboard", 120);
+    hBtnGames_ = mkbtn(1104, L"\u25A0  Games", 168);
+    hBtnTasks_ = mkbtn(IDC_BTN_TASKS, L"\u25B2  Tasks", 216);
+    hBtnSettings_ = mkbtn(IDC_BTN_SETT, L"\u2699  Settings", 264);
 
     // Custom Minimize / Close Buttons in Title Bar
-    hBtnMin_ = CreateWindowExW(0, L"BUTTON", L"—",
+    hBtnMin_ = CreateWindowExW(0, L"BUTTON", L"\u2014",
         WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
         760 - 80, 0, 40, 32, hWnd_, (HMENU)1301, hInst_, NULL);
     sf(hBtnMin_, hFontWindowTitle_);
 
-    hBtnClose_ = CreateWindowExW(0, L"BUTTON", L"✕",
+    hBtnClose_ = CreateWindowExW(0, L"BUTTON", L"\u2715",
         WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
         760 - 40, 0, 40, 32, hWnd_, (HMENU)1302, hInst_, NULL);
     sf(hBtnClose_, hFontWindowTitle_);
 
     hContent_ = CreateWindowExW(0, L"STATIC", L"", WS_CHILD | WS_VISIBLE,
         200, 32, 560, 488, hWnd_, NULL, hInst_, NULL);
+
+    SetWindowTheme(hContent_, L"", L"");
+    SetWindowSubclass(hContent_, SubclassPanelProc, 5, (DWORD_PTR)this);
 
     InvalidateRect(hWnd_, NULL, TRUE);
 }
@@ -380,8 +384,17 @@ void AgentGUI::create_dashboard() {
     hDashPanel_ = CreateWindowExW(0, L"STATIC", L"", WS_CHILD | WS_VISIBLE,
         0, 0, rc.right, rc.bottom, hContent_, NULL, hInst_, NULL);
 
-    // Subclass the dashboard panel to handle GDI owner drawing
     SetWindowSubclass(hDashPanel_, SubclassPanelProc, 1, (DWORD_PTR)this);
+}
+
+void AgentGUI::create_games() {
+    RECT rc;
+    GetClientRect(hContent_, &rc);
+
+    hGamesPanel_ = CreateWindowExW(0, L"STATIC", L"", WS_CHILD,
+        0, 0, rc.right, rc.bottom, hContent_, NULL, hInst_, NULL);
+
+    SetWindowSubclass(hGamesPanel_, SubclassPanelProc, 2, (DWORD_PTR)this);
 }
 
 void AgentGUI::create_settings() {
@@ -391,36 +404,41 @@ void AgentGUI::create_settings() {
 
     hSettingsPanel_ = CreateWindowExW(0, L"STATIC", L"", WS_CHILD,
         0, 0, rc.right, rc.bottom, hContent_, NULL, hInst_, NULL);
+    SetWindowTheme(hSettingsPanel_, L"", L"");
 
     HWND hT = CreateWindowExW(0, L"STATIC", L"Connection Configuration",
         WS_CHILD | WS_VISIBLE, x, y, w, 28, hSettingsPanel_, NULL, hInst_, NULL);
     sf(hT, hFontTitle_);
+    SetWindowTheme(hT, L"", L"");
     y += 45;
 
     std::wstring idStr = L"Agent ID: " + utf8_to_wstring(agent_id_);
     HWND hId = CreateWindowExW(0, L"STATIC", idStr.c_str(),
         WS_CHILD | WS_VISIBLE, x, y, w, 20, hSettingsPanel_, NULL, hInst_, NULL);
     sf(hId, hFontSidebarBtn_);
+    SetWindowTheme(hId, L"", L"");
     y += 28;
 
     HWND hVer = CreateWindowExW(0, L"STATIC", L"Version: C++ Agent 1.7.0",
         WS_CHILD | WS_VISIBLE, x, y, w, 20, hSettingsPanel_, NULL, hInst_, NULL);
     sf(hVer, hFontSidebarBtn_);
+    SetWindowTheme(hVer, L"", L"");
     y += 36;
 
     HWND hCodeLabel = CreateWindowExW(0, L"STATIC", L"Activation Key (TG-XXXX-XXXX) or Access Token:",
         WS_CHILD | WS_VISIBLE, x, y, w, 20, hSettingsPanel_, NULL, hInst_, NULL);
     sf(hCodeLabel, hFontSidebarBtn_);
+    SetWindowTheme(hCodeLabel, L"", L"");
     y += 24;
 
-    hCodeEdit_ = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"",
+    hCodeEdit_ = CreateWindowExW(0, L"EDIT", L"",
         WS_CHILD | WS_VISIBLE | ES_LEFT | ES_AUTOHSCROLL,
         x, y, w - 40, 32, hSettingsPanel_, NULL, hInst_, NULL);
     sf(hCodeEdit_, hFontSidebarBtn_);
+    SetWindowTheme(hCodeEdit_, L"", L"");
     
     SendMessageW(hCodeEdit_, EM_SETCUEBANNER, TRUE, (LPARAM)L"Enter key from Telegram bot");
 
-    // Fill with current key
     std::wstring currentKey = utf8_to_wstring(ACCESS_KEY);
     SetWindowTextW(hCodeEdit_, currentKey.c_str());
 
@@ -435,6 +453,9 @@ void AgentGUI::create_settings() {
     hSaveStatusLabel_ = CreateWindowExW(0, L"STATIC", L"",
         WS_CHILD | WS_VISIBLE, x, y, w, 24, hSettingsPanel_, NULL, hInst_, NULL);
     sf(hSaveStatusLabel_, hFontSidebarBtn_);
+    SetWindowTheme(hSaveStatusLabel_, L"", L"");
+
+    SetWindowSubclass(hSettingsPanel_, SubclassPanelProc, 3, (DWORD_PTR)this);
 }
 
 void AgentGUI::create_tasks() {
@@ -443,10 +464,12 @@ void AgentGUI::create_tasks() {
 
     hTasksPanel_ = CreateWindowExW(0, L"STATIC", L"", WS_CHILD,
         0, 0, rc.right, rc.bottom, hContent_, NULL, hInst_, NULL);
+    SetWindowTheme(hTasksPanel_, L"", L"");
 
     HWND hT = CreateWindowExW(0, L"STATIC", L"Task History Log",
         WS_CHILD | WS_VISIBLE, 30, 25, rc.right - 60, 28, hTasksPanel_, NULL, hInst_, NULL);
     sf(hT, hFontTitle_);
+    SetWindowTheme(hT, L"", L"");
 
     hTaskList_ = CreateWindowExW(WS_EX_CLIENTEDGE, WC_LISTVIEWW, L"",
         WS_CHILD | WS_VISIBLE | LVS_REPORT | LVS_SINGLESEL | LVS_NOSORTHEADER,
@@ -456,7 +479,6 @@ void AgentGUI::create_tasks() {
     SendMessageW(hTaskList_, LVM_SETTEXTBKCOLOR, 0, (LPARAM)CLR_PANEL);
     SendMessageW(hTaskList_, LVM_SETTEXTCOLOR, 0, (LPARAM)CLR_TXT);
 
-    // Apply Explorer theme to the ListView
     SetWindowTheme(hTaskList_, L"Explorer", NULL);
 
     LVCOLUMNW lc = {};
@@ -473,6 +495,8 @@ void AgentGUI::create_tasks() {
     SendMessageW(hTaskList_, LVM_INSERTCOLUMNW, 3, (LPARAM)&lc);
 
     SendMessageW(hTaskList_, LVM_SETEXTENDEDLISTVIEWSTYLE, 0, (LPARAM)LVS_EX_FULLROWSELECT);
+
+    SetWindowSubclass(hTasksPanel_, SubclassPanelProc, 4, (DWORD_PTR)this);
 }
 
 bool AgentGUI::create() {
@@ -484,9 +508,11 @@ bool AgentGUI::create() {
 
     create_sidebar();
     create_dashboard();
+    create_games();
     create_settings();
     create_tasks();
 
+    ShowWindow(hGamesPanel_, SW_HIDE);
     ShowWindow(hSettingsPanel_, SW_HIDE);
     ShowWindow(hTasksPanel_, SW_HIDE);
     return true;
@@ -497,8 +523,9 @@ void AgentGUI::hide() { visible_ = false; ShowWindow(hWnd_, SW_HIDE); }
 
 void AgentGUI::switch_page(int idx) {
     ShowWindow(hDashPanel_, idx == 0 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hSettingsPanel_, idx == 1 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hTasksPanel_, idx == 2 ? SW_SHOW : SW_HIDE);
+    ShowWindow(hGamesPanel_, idx == 1 ? SW_SHOW : SW_HIDE);
+    ShowWindow(hSettingsPanel_, idx == 2 ? SW_SHOW : SW_HIDE);
+    ShowWindow(hTasksPanel_, idx == 3 ? SW_SHOW : SW_HIDE);
     current_page_ = idx;
     InvalidateRect(hWnd_, NULL, TRUE);
 }
@@ -709,21 +736,414 @@ void AgentGUI::draw_dashboard_panel(HDC hdc) {
     DeleteObject(hCardBrush);
 }
 
+bool file_exists(const std::wstring& path) {
+    DWORD dwAttrib = GetFileAttributesW(path.c_str());
+    return (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+}
+
+std::wstring read_reg_string(HKEY hKeyParent, const std::wstring& subkey, const std::wstring& valueName) {
+    HKEY hKey;
+    std::wstring result = L"";
+    if (RegOpenKeyExW(hKeyParent, subkey.c_str(), 0, KEY_READ | KEY_WOW64_64KEY, &hKey) == ERROR_SUCCESS) {
+        wchar_t buf[MAX_PATH];
+        DWORD dwType;
+        DWORD dwSize = sizeof(buf);
+        if (RegQueryValueExW(hKey, valueName.c_str(), NULL, &dwType, (LPBYTE)buf, &dwSize) == ERROR_SUCCESS) {
+            if (dwType == REG_SZ || dwType == REG_EXPAND_SZ) {
+                result = buf;
+            }
+        }
+        RegCloseKey(hKey);
+    }
+    if (result.empty() && RegOpenKeyExW(hKeyParent, subkey.c_str(), 0, KEY_READ | KEY_WOW64_32KEY, &hKey) == ERROR_SUCCESS) {
+        wchar_t buf[MAX_PATH];
+        DWORD dwType;
+        DWORD dwSize = sizeof(buf);
+        if (RegQueryValueExW(hKey, valueName.c_str(), NULL, &dwType, (LPBYTE)buf, &dwSize) == ERROR_SUCCESS) {
+            if (dwType == REG_SZ || dwType == REG_EXPAND_SZ) {
+                result = buf;
+            }
+        }
+        RegCloseKey(hKey);
+    }
+    return result;
+}
+
+std::wstring find_uninstall_path(const std::wstring& displayNamePart) {
+    std::vector<std::pair<HKEY, std::wstring>> keys = {
+        { HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall" },
+        { HKEY_LOCAL_MACHINE, L"SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall" },
+        { HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall" }
+    };
+    for (const auto& k : keys) {
+        HKEY hKeyParent;
+        if (RegOpenKeyExW(k.first, k.second.c_str(), 0, KEY_READ | KEY_WOW64_64KEY, &hKeyParent) == ERROR_SUCCESS) {
+            DWORD dwSubKeys = 0;
+            if (RegQueryInfoKeyW(hKeyParent, NULL, NULL, NULL, &dwSubKeys, NULL, NULL, NULL, NULL, NULL, NULL, NULL) == ERROR_SUCCESS) {
+                for (DWORD i = 0; i < dwSubKeys; i++) {
+                    wchar_t subkeyName[256];
+                    DWORD dwNameLen = 256;
+                    if (RegEnumKeyExW(hKeyParent, i, subkeyName, &dwNameLen, NULL, NULL, NULL, NULL) == ERROR_SUCCESS) {
+                        HKEY hSubKey;
+                        if (RegOpenKeyExW(hKeyParent, subkeyName, 0, KEY_READ | KEY_WOW64_64KEY, &hSubKey) == ERROR_SUCCESS) {
+                            wchar_t dispName[256] = {0};
+                            DWORD dwType;
+                            DWORD dwSize = sizeof(dispName);
+                            if (RegQueryValueExW(hSubKey, L"DisplayName", NULL, &dwType, (LPBYTE)dispName, &dwSize) == ERROR_SUCCESS) {
+                                std::wstring dn(dispName);
+                                if (dn.find(displayNamePart) != std::wstring::npos) {
+                                    wchar_t installLoc[512] = {0};
+                                    dwSize = sizeof(installLoc);
+                                    if (RegQueryValueExW(hSubKey, L"InstallLocation", NULL, &dwType, (LPBYTE)installLoc, &dwSize) == ERROR_SUCCESS && installLoc[0] != 0) {
+                                        RegCloseKey(hSubKey);
+                                        RegCloseKey(hKeyParent);
+                                        return installLoc;
+                                    }
+                                    wchar_t uninstallStr[512] = {0};
+                                    dwSize = sizeof(uninstallStr);
+                                    if (RegQueryValueExW(hSubKey, L"UninstallString", NULL, &dwType, (LPBYTE)uninstallStr, &dwSize) == ERROR_SUCCESS && uninstallStr[0] != 0) {
+                                        std::wstring us(uninstallStr);
+                                        if (us[0] == L'"') {
+                                            size_t nextQuote = us.find(L'"', 1);
+                                            if (nextQuote != std::wstring::npos) {
+                                                us = us.substr(1, nextQuote - 1);
+                                            }
+                                        }
+                                        size_t lastSlash = us.find_last_of(L"\\/");
+                                        if (lastSlash != std::wstring::npos) {
+                                            us = us.substr(0, lastSlash);
+                                        }
+                                        RegCloseKey(hSubKey);
+                                        RegCloseKey(hKeyParent);
+                                        return us;
+                                    }
+                                }
+                            }
+                            RegCloseKey(hSubKey);
+                        }
+                    }
+                }
+            }
+            RegCloseKey(hKeyParent);
+        }
+    }
+    return L"";
+}
+
+struct GameInfo {
+    std::wstring key;
+    std::wstring name;
+    std::wstring emoji;
+    std::wstring path;
+    bool detected;
+};
+
+std::vector<GameInfo> detect_games() {
+    std::vector<GameInfo> games = {
+        { L"majestic_launcher", L"Majestic Launcher", L"\u25C6", L"", false },
+        { L"gta5rp_launcher", L"GTA5RP Launcher", L"\u25C6", L"", false },
+        { L"gta5", L"Grand Theft Auto V", L"\u25C6", L"", false },
+        { L"steam", L"Steam Launcher", L"\u25C6", L"", false },
+        { L"epic_games", L"Epic Games Launcher", L"\u25C6", L"", false },
+        { L"minecraft", L"Minecraft", L"\u26CF", L"", false },
+        { L"roblox", L"Roblox", L"\u25C6", L"", false },
+        { L"riot_games", L"Riot Client", L"\u25C6", L"", false },
+        { L"ea_desktop", L"EA Desktop", L"\u25C6", L"", false },
+        { L"battle_net", L"Battle.net Launcher", L"\u2744", L"", false },
+        { L"ubisoft_connect", L"Ubisoft Connect", L"\u25C6", L"", false }
+    };
+
+    wchar_t local_appdata[MAX_PATH] = {0};
+    GetEnvironmentVariableW(L"LOCALAPPDATA", local_appdata, MAX_PATH);
+    std::wstring local_appdata_str(local_appdata);
+
+    wchar_t appdata[MAX_PATH] = {0};
+    GetEnvironmentVariableW(L"APPDATA", appdata, MAX_PATH);
+    std::wstring appdata_str(appdata);
+
+    wchar_t pf[MAX_PATH] = {0};
+    GetEnvironmentVariableW(L"ProgramFiles", pf, MAX_PATH);
+    std::wstring pf_str(pf);
+
+    wchar_t pfx86[MAX_PATH] = {0};
+    GetEnvironmentVariableW(L"ProgramFiles(x86)", pfx86, MAX_PATH);
+    std::wstring pfx86_str(pfx86);
+
+    for (auto& game : games) {
+        if (game.key == L"majestic_launcher") {
+            std::wstring p1 = local_appdata_str + L"\\MajesticLauncher\\Majestic Launcher.exe";
+            std::wstring p2 = local_appdata_str + L"\\MajesticLauncherGLOBAL\\Majestic Launcher.exe";
+            if (file_exists(p1)) { game.path = p1; game.detected = true; }
+            else if (file_exists(p2)) { game.path = p2; game.detected = true; }
+            else {
+                std::wstring uPath = find_uninstall_path(L"Majestic Launcher");
+                if (uPath.empty()) uPath = find_uninstall_path(L"Majestic");
+                if (!uPath.empty()) {
+                    std::wstring p = uPath + L"\\Majestic Launcher.exe";
+                    if (file_exists(p)) { game.path = p; game.detected = true; }
+                }
+            }
+        }
+        else if (game.key == L"gta5rp_launcher") {
+            std::wstring p1 = pfx86_str + L"\\GTA5RP\\GTA5RPLauncher.exe";
+            std::wstring p2 = pf_str + L"\\GTA5RP\\GTA5RPLauncher.exe";
+            std::wstring p3 = local_appdata_str + L"\\Programs\\gta5rp-launcher\\GTA5RP Launcher.exe";
+            if (file_exists(p1)) { game.path = p1; game.detected = true; }
+            else if (file_exists(p2)) { game.path = p2; game.detected = true; }
+            else if (file_exists(p3)) { game.path = p3; game.detected = true; }
+            else {
+                std::wstring uPath = find_uninstall_path(L"GTA5RP Launcher");
+                if (!uPath.empty()) {
+                    std::wstring p = uPath + L"\\GTA5RP Launcher.exe";
+                    std::wstring p_alt = uPath + L"\\GTA5RPLauncher.exe";
+                    if (file_exists(p)) { game.path = p; game.detected = true; }
+                    else if (file_exists(p_alt)) { game.path = p_alt; game.detected = true; }
+                }
+            }
+        }
+        else if (game.key == L"gta5") {
+            std::wstring p1 = L"C:\\Program Files\\Rockstar Games\\Grand Theft Auto V\\PlayGTAV.exe";
+            std::wstring p2 = L"C:\\Program Files (x86)\\Rockstar Games\\Grand Theft Auto V\\PlayGTAV.exe";
+            if (file_exists(p1)) { game.path = p1; game.detected = true; }
+            else if (file_exists(p2)) { game.path = p2; game.detected = true; }
+            else {
+                std::wstring uPath = find_uninstall_path(L"Grand Theft Auto V");
+                if (!uPath.empty()) {
+                    std::wstring p = uPath + L"\\PlayGTAV.exe";
+                    if (file_exists(p)) { game.path = p; game.detected = true; }
+                }
+            }
+        }
+        else if (game.key == L"steam") {
+            std::wstring regPath = read_reg_string(HKEY_CURRENT_USER, L"Software\\Valve\\Steam", L"SteamPath");
+            if (!regPath.empty()) {
+                std::wstring p = regPath + L"\\steam.exe";
+                std::replace(p.begin(), p.end(), L'/', L'\\');
+                if (file_exists(p)) { game.path = p; game.detected = true; }
+            }
+            if (!game.detected) {
+                std::wstring p1 = pfx86_str + L"\\Steam\\steam.exe";
+                std::wstring p2 = pf_str + L"\\Steam\\steam.exe";
+                if (file_exists(p1)) { game.path = p1; game.detected = true; }
+                else if (file_exists(p2)) { game.path = p2; game.detected = true; }
+            }
+            if (!game.detected) {
+                std::wstring uPath = find_uninstall_path(L"Steam");
+                if (!uPath.empty()) {
+                    std::wstring p = uPath + L"\\steam.exe";
+                    if (file_exists(p)) { game.path = p; game.detected = true; }
+                }
+            }
+        }
+        else if (game.key == L"epic_games") {
+            std::wstring regPath = read_reg_string(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\EpicGamesLauncher.exe", L"");
+            if (!regPath.empty() && file_exists(regPath)) {
+                game.path = regPath; game.detected = true;
+            }
+            if (!game.detected) {
+                std::wstring p1 = pfx86_str + L"\\Epic Games\\Launcher\\Portal\\Binaries\\Win64\\EpicGamesLauncher.exe";
+                if (file_exists(p1)) { game.path = p1; game.detected = true; }
+            }
+            if (!game.detected) {
+                std::wstring uPath = find_uninstall_path(L"Epic Games Launcher");
+                if (!uPath.empty()) {
+                    std::wstring p = uPath + L"\\EpicGamesLauncher.exe";
+                    if (file_exists(p)) { game.path = p; game.detected = true; }
+                }
+            }
+        }
+        else if (game.key == L"minecraft") {
+            std::wstring p1 = L"C:\\XboxGames\\Minecraft Launcher\\Content\\Minecraft.exe";
+            std::wstring p2 = appdata_str + L"\\.minecraft\\launcher.exe";
+            if (file_exists(p1)) { game.path = p1; game.detected = true; }
+            else if (file_exists(p2)) { game.path = p2; game.detected = true; }
+            else {
+                std::wstring uPath = find_uninstall_path(L"Minecraft Launcher");
+                if (!uPath.empty()) {
+                    std::wstring p = uPath + L"\\Minecraft.exe";
+                    if (file_exists(p)) { game.path = p; game.detected = true; }
+                }
+            }
+        }
+        else if (game.key == L"roblox") {
+            std::wstring rDir = local_appdata_str + L"\\Roblox\\Versions";
+            std::wstring search = rDir + L"\\*";
+            WIN32_FIND_DATAW fd;
+            HANDLE hFind = FindFirstFileW(search.c_str(), &fd);
+            if (hFind != INVALID_HANDLE_VALUE) {
+                do {
+                    if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+                        std::wstring sub = fd.cFileName;
+                        if (sub != L"." && sub != L"..") {
+                            std::wstring p = rDir + L"\\" + sub + L"\\RobloxPlayerLauncher.exe";
+                            if (file_exists(p)) {
+                                game.path = p; game.detected = true;
+                                break;
+                            }
+                        }
+                    }
+                } while (FindNextFileW(hFind, &fd));
+                FindClose(hFind);
+            }
+            if (!game.detected) {
+                std::wstring uPath = find_uninstall_path(L"Roblox Player");
+                if (!uPath.empty()) {
+                    std::wstring p = uPath + L"\\RobloxPlayerLauncher.exe";
+                    if (file_exists(p)) { game.path = p; game.detected = true; }
+                }
+            }
+        }
+        else if (game.key == L"riot_games") {
+            std::wstring p = L"C:\\Riot Games\\Riot Client\\RiotClientServices.exe";
+            if (file_exists(p)) { game.path = p; game.detected = true; }
+            else {
+                std::wstring uPath = find_uninstall_path(L"Riot Client");
+                if (!uPath.empty()) {
+                    std::wstring p2 = uPath + L"\\RiotClientServices.exe";
+                    if (file_exists(p2)) { game.path = p2; game.detected = true; }
+                }
+            }
+        }
+        else if (game.key == L"ea_desktop") {
+            std::wstring p = L"C:\\Program Files\\Electronic Arts\\EA Desktop\\EA Desktop\\EADesktop.exe";
+            if (file_exists(p)) { game.path = p; game.detected = true; }
+            else {
+                std::wstring uPath = find_uninstall_path(L"EA app");
+                if (!uPath.empty()) {
+                    std::wstring p2 = uPath + L"\\EADesktop.exe";
+                    if (file_exists(p2)) { game.path = p2; game.detected = true; }
+                }
+            }
+        }
+        else if (game.key == L"battle_net") {
+            std::wstring p1 = pfx86_str + L"\\Battle.net\\Battle.net.exe";
+            std::wstring p2 = pf_str + L"\\Battle.net\\Battle.net.exe";
+            if (file_exists(p1)) { game.path = p1; game.detected = true; }
+            else if (file_exists(p2)) { game.path = p2; game.detected = true; }
+            else {
+                std::wstring uPath = find_uninstall_path(L"Battle.net");
+                if (!uPath.empty()) {
+                    std::wstring p3 = uPath + L"\\Battle.net.exe";
+                    if (file_exists(p3)) { game.path = p3; game.detected = true; }
+                }
+            }
+        }
+        else if (game.key == L"ubisoft_connect") {
+            std::wstring p1 = pfx86_str + L"\\Ubisoft\\Ubisoft Game Launcher\\UbisoftConnect.exe";
+            if (file_exists(p1)) { game.path = p1; game.detected = true; }
+            else {
+                std::wstring uPath = find_uninstall_path(L"Ubisoft Connect");
+                if (!uPath.empty()) {
+                    std::wstring p2 = uPath + L"\\UbisoftConnect.exe";
+                    if (file_exists(p2)) { game.path = p2; game.detected = true; }
+                }
+            }
+        }
+    }
+    return games;
+}
+
+void AgentGUI::draw_games_panel(HDC hdc) {
+    RECT rc;
+    GetClientRect(hGamesPanel_, &rc);
+    
+    // Fill background with CLR_APP (#0C0B10)
+    FillRect(hdc, &rc, hBrushApp_);
+    
+    // Draw Title: "Detected Games & Launchers"
+    HFONT hOldFont = (HFONT)SelectObject(hdc, hFontTitle_);
+    SetBkMode(hdc, TRANSPARENT);
+    SetTextColor(hdc, CLR_WHT);
+    
+    RECT titleRc = { 30, 20, rc.right - 30, 48 };
+    DrawTextW(hdc, L"Detected Games & Launchers", -1, &titleRc, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+    
+    // Draw Subtitle
+    SelectObject(hdc, hFont_);
+    SetTextColor(hdc, CLR_TXT);
+    RECT subtitleRc = { 30, 48, rc.right - 30, 68 };
+    DrawTextW(hdc, L"These games and launchers are automatically detected on your PC and can be controlled remotely.", -1, &subtitleRc, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+    
+    // Detect games
+    std::vector<GameInfo> games = detect_games();
+    
+    HPEN hOldPen = (HPEN)SelectObject(hdc, GetStockObject(NULL_PEN));
+    HBRUSH hCardBrush = CreateSolidBrush(CLR_PANEL); // #161523
+    HBRUSH hOldBrush = (HBRUSH)SelectObject(hdc, hCardBrush);
+    
+    int yStart = 75;
+    int spacing = 36;
+    int cardH = 30;
+    
+    for (size_t i = 0; i < games.size(); i++) {
+        int y = yStart + i * spacing;
+        RECT cardRc = { 30, y, rc.right - 30, y + cardH };
+        
+        SelectObject(hdc, hCardBrush);
+        RoundRect(hdc, cardRc.left, cardRc.top, cardRc.right, cardRc.bottom, 12, 12);
+        
+        // Draw emoji + name
+        SetTextColor(hdc, CLR_WHT);
+        SelectObject(hdc, hFontCardTitle_);
+        std::wstring nameText = games[i].emoji + L"  " + games[i].name;
+        RECT nameRc = { cardRc.left + 12, cardRc.top, cardRc.left + 220, cardRc.bottom };
+        DrawTextW(hdc, nameText.c_str(), -1, &nameRc, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+        
+        if (games[i].detected) {
+            SetTextColor(hdc, CLR_TXT);
+            SelectObject(hdc, hFont_);
+            std::wstring displayPath = games[i].path;
+            if (displayPath.length() > 28) {
+                displayPath = L"..." + displayPath.substr(displayPath.length() - 25);
+            }
+            RECT pathRc = { cardRc.left + 200, cardRc.top, cardRc.right - 95, cardRc.bottom };
+            DrawTextW(hdc, displayPath.c_str(), -1, &pathRc, DT_RIGHT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+            
+            HBRUSH hBadgeBg = CreateSolidBrush(RGB(6, 78, 59));
+            SelectObject(hdc, hBadgeBg);
+            RECT badgeRc = { cardRc.right - 85, cardRc.top + 4, cardRc.right - 10, cardRc.bottom - 4 };
+            RoundRect(hdc, badgeRc.left, badgeRc.top, badgeRc.right, badgeRc.bottom, 8, 8);
+            DeleteObject(hBadgeBg);
+            
+            SetTextColor(hdc, RGB(52, 211, 153));
+            SelectObject(hdc, hFontWindowTitle_);
+            DrawTextW(hdc, L"Detected", -1, &badgeRc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+        } else {
+            HBRUSH hBadgeBg = CreateSolidBrush(RGB(31, 41, 55));
+            SelectObject(hdc, hBadgeBg);
+            RECT badgeRc = { cardRc.right - 85, cardRc.top + 4, cardRc.right - 10, cardRc.bottom - 4 };
+            RoundRect(hdc, badgeRc.left, badgeRc.top, badgeRc.right, badgeRc.bottom, 8, 8);
+            DeleteObject(hBadgeBg);
+            
+            SetTextColor(hdc, RGB(156, 163, 175));
+            SelectObject(hdc, hFontWindowTitle_);
+            DrawTextW(hdc, L"Not Found", -1, &badgeRc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+        }
+    }
+    
+    SelectObject(hdc, hOldBrush);
+    SelectObject(hdc, hOldPen);
+    SelectObject(hdc, hOldFont);
+    DeleteObject(hCardBrush);
+}
+
 LRESULT CALLBACK AgentGUI::SubclassPanelProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData) {
     AgentGUI* pGUI = (AgentGUI*)dwRefData;
-    if (msg == WM_PAINT) {
+    if (msg == WM_PAINT && (uIdSubclass == 1 || uIdSubclass == 2)) {
         PAINTSTRUCT ps;
         HDC hdc = BeginPaint(hWnd, &ps);
-        
         RECT rc;
         GetClientRect(hWnd, &rc);
         
-        // Double buffering to prevent flickering
         HDC hdcMem = CreateCompatibleDC(hdc);
         HBITMAP hbmMem = CreateCompatibleBitmap(hdc, rc.right, rc.bottom);
         HBITMAP hOldBm = (HBITMAP)SelectObject(hdcMem, hbmMem);
         
-        pGUI->draw_dashboard_panel(hdcMem);
+        if (uIdSubclass == 1) {
+            pGUI->draw_dashboard_panel(hdcMem);
+        } else {
+            pGUI->draw_games_panel(hdcMem);
+        }
         
         BitBlt(hdc, 0, 0, rc.right, rc.bottom, hdcMem, 0, 0, SRCCOPY);
         
@@ -734,6 +1154,12 @@ LRESULT CALLBACK AgentGUI::SubclassPanelProc(HWND hWnd, UINT msg, WPARAM wParam,
         EndPaint(hWnd, &ps);
         return 0;
     }
+    
+    if (msg == WM_CTLCOLORSTATIC || msg == WM_CTLCOLOREDIT || msg == WM_CTLCOLORBTN || msg == WM_CTLCOLORLISTBOX ||
+        msg == WM_DRAWITEM || msg == WM_COMMAND || msg == WM_NOTIFY) {
+        return SendMessageW(pGUI->hWnd_, msg, wParam, lParam);
+    }
+    
     return DefSubclassProc(hWnd, msg, wParam, lParam);
 }
 
@@ -746,9 +1172,9 @@ LRESULT CALLBACK AgentGUI::WndProc(HWND hWnd, UINT msg, WPARAM w, LPARAM l) {
         ScreenToClient(hWnd, &pt);
         if (pt.y >= 0 && pt.y < 32) {
             if (pt.x >= 760 - 80) {
-                return HTCLIENT; // let minimize and close buttons receive input
+                return HTCLIENT;
             }
-            return HTCAPTION; // drag window
+            return HTCAPTION;
         }
         return HTCLIENT;
     }
@@ -759,6 +1185,10 @@ LRESULT CALLBACK AgentGUI::WndProc(HWND hWnd, UINT msg, WPARAM w, LPARAM l) {
             HDC hdc = pDIS->hDC;
             RECT rc = pDIS->rcItem;
             HWND hwnd = pDIS->hwndItem;
+            
+            // Select control's font into DC
+            HFONT hFont = (HFONT)SendMessageW(hwnd, WM_GETFONT, 0, 0);
+            HFONT hOldFont = (HFONT)SelectObject(hdc, hFont);
             
             wchar_t text[256] = {0};
             GetWindowTextW(hwnd, text, 255);
@@ -780,14 +1210,16 @@ LRESULT CALLBACK AgentGUI::WndProc(HWND hWnd, UINT msg, WPARAM w, LPARAM l) {
                 
                 SetBkMode(hdc, TRANSPARENT);
                 SetTextColor(hdc, CLR_TXT);
-                DrawTextW(hdc, text, -1, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                DrawTextW(hdc, text, -1, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+                SelectObject(hdc, hOldFont);
                 return TRUE;
             }
             
             if (!is_save_btn && self_) {
-                int btn_idx = (hwnd == self_->hBtnDash_) ? 0 : 
-                              (hwnd == self_->hBtnSettings_) ? 1 : 
-                              (hwnd == self_->hBtnTasks_) ? 2 : -1;
+                int btn_idx = (pDIS->CtlID == IDC_BTN_DASH) ? 0 : 
+                              (pDIS->CtlID == 1104) ? 1 : 
+                              (pDIS->CtlID == IDC_BTN_SETT) ? 2 : 
+                              (pDIS->CtlID == IDC_BTN_TASKS) ? 3 : -1;
                 is_active_tab = (btn_idx == self_->current_page_);
             }
             
@@ -797,20 +1229,20 @@ LRESULT CALLBACK AgentGUI::WndProc(HWND hWnd, UINT msg, WPARAM w, LPARAM l) {
             
             if (is_save_btn) {
                 if (is_pressed) {
-                    hBgBrush = CreateSolidBrush(RGB(109, 40, 217)); // Darker purple
+                    hBgBrush = CreateSolidBrush(RGB(109, 40, 217));
                 } else {
-                    hBgBrush = CreateSolidBrush(CLR_ACCENT); // Accent purple
+                    hBgBrush = CreateSolidBrush(CLR_ACCENT);
                 }
                 textColor = RGB(255, 255, 255);
             } else {
                 if (is_active_tab) {
-                    hBgBrush = CreateSolidBrush(CLR_ACCENT); // Selected tab matching Python agent
+                    hBgBrush = CreateSolidBrush(CLR_ACCENT);
                     textColor = CLR_WHT;
                 } else if (is_pressed) {
                     hBgBrush = CreateSolidBrush(RGB(30, 27, 48));
                     textColor = CLR_WHT;
                 } else {
-                    hBgBrush = CreateSolidBrush(CLR_SIDE); // Sidebar bg
+                    hBgBrush = CreateSolidBrush(CLR_SIDE);
                     textColor = CLR_TXT;
                 }
             }
@@ -823,11 +1255,13 @@ LRESULT CALLBACK AgentGUI::WndProc(HWND hWnd, UINT msg, WPARAM w, LPARAM l) {
             
             RECT textRc = rc;
             if (is_save_btn) {
-                DrawTextW(hdc, text, -1, &textRc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                DrawTextW(hdc, text, -1, &textRc, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
             } else {
-                textRc.left += 20; // Indent sidebar button text
-                DrawTextW(hdc, text, -1, &textRc, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+                textRc.left += 20;
+                DrawTextW(hdc, text, -1, &textRc, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
             }
+            
+            SelectObject(hdc, hOldFont);
             return TRUE;
         }
         break;
@@ -840,19 +1274,19 @@ LRESULT CALLBACK AgentGUI::WndProc(HWND hWnd, UINT msg, WPARAM w, LPARAM l) {
         RECT rc;
         GetClientRect(hWnd, &rc);
         
-        // Draw title bar background (0,0 to 760,32)
+        // Draw title bar background
         RECT titleBarRc = { 0, 0, rc.right, 32 };
         FillRect(hdc, &titleBarRc, self_->hBrushApp_);
         
-        // Draw sidebar background (0,32 to 200,520)
+        // Draw sidebar background
         RECT sidebarRc = { 0, 32, SIDEBAR_W, rc.bottom };
         FillRect(hdc, &sidebarRc, self_->hBrushSide_);
         
-        // Draw content area background (200,32 to 760,520)
+        // Draw content area background
         RECT contentRc = { SIDEBAR_W, 32, rc.right, rc.bottom };
         FillRect(hdc, &contentRc, self_->hBrushApp_);
         
-        // Draw sidebar logo and headers in sidebar
+        // Draw sidebar logo and headers
         if (self_->hIcon_) {
             DrawIconEx(hdc, 20, 50, self_->hIcon_, 32, 32, 0, NULL, DI_NORMAL);
         }
@@ -868,13 +1302,13 @@ LRESULT CALLBACK AgentGUI::WndProc(HWND hWnd, UINT msg, WPARAM w, LPARAM l) {
         RECT subtitleRc = { 60, 74, 190, 95 };
         DrawTextW(hdc, L"Windows Agent", -1, &subtitleRc, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
         
-        // Draw window title text in title bar
+        // Draw window title text
         SetTextColor(hdc, CLR_TXT);
         SelectObject(hdc, self_->hFontWindowTitle_);
         RECT titleTextRc = { 10, 0, 500, 32 };
         DrawTextW(hdc, L"PCManager Agent Dashboard", -1, &titleTextRc, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
         
-        // Draw 1px purple border around the entire window
+        // Draw 1px purple border
         HPEN hBorderPen = CreatePen(PS_SOLID, 1, CLR_ACCENT);
         HPEN hOldPen = (HPEN)SelectObject(hdc, hBorderPen);
         HBRUSH hOldBrush = (HBRUSH)SelectObject(hdc, GetStockObject(NULL_BRUSH));
@@ -889,7 +1323,7 @@ LRESULT CALLBACK AgentGUI::WndProc(HWND hWnd, UINT msg, WPARAM w, LPARAM l) {
     }
 
     case WM_ERASEBKGND:
-        return 1; // Prevent background erasing to stop flicker
+        return 1;
 
     case WM_CTLCOLORSTATIC: {
         HDC hdc = (HDC)w;
@@ -903,7 +1337,6 @@ LRESULT CALLBACK AgentGUI::WndProc(HWND hWnd, UINT msg, WPARAM w, LPARAM l) {
             SetTextColor(hdc, CLR_TXT);
         }
         
-        // Return brush matching the app background color
         return (LRESULT)self_->hBrushApp_;
     }
 
@@ -921,30 +1354,28 @@ LRESULT CALLBACK AgentGUI::WndProc(HWND hWnd, UINT msg, WPARAM w, LPARAM l) {
     case WM_COMMAND: {
         int id = LOWORD(w);
         if (id == IDC_BTN_DASH) self_->switch_page(0);
-        else if (id == IDC_BTN_SETT) self_->switch_page(1);
-        else if (id == IDC_BTN_TASKS) self_->switch_page(2);
-        else if (id == 1301) { // Minimize
+        else if (id == 1104) self_->switch_page(1);
+        else if (id == IDC_BTN_SETT) self_->switch_page(2);
+        else if (id == IDC_BTN_TASKS) self_->switch_page(3);
+        else if (id == 1301) {
             ShowWindow(hWnd, SW_MINIMIZE);
         }
-        else if (id == 1302) { // Close
+        else if (id == 1302) {
             ShowWindow(hWnd, SW_HIDE);
         }
         else if (id == 1201) {
-            // Save button clicked
             wchar_t wbuf[512] = {0};
             GetWindowTextW(self_->hCodeEdit_, wbuf, 511);
             std::wstring wcode(wbuf);
             
-            // Trim whitespace
             wcode.erase(0, wcode.find_first_not_of(L" \t\r\n"));
             wcode.erase(wcode.find_last_not_of(L" \t\r\n") + 1);
 
             if (wcode.empty()) {
-                SetWindowTextW(self_->hSaveStatusLabel_, L"\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043A\u043E\u0434 \u0438\u0437 Telegram"); // "Введите код из Telegram"
+                SetWindowTextW(self_->hSaveStatusLabel_, L"\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043A\u043E\u0434 \u0438\u0437 Telegram");
                 break;
             }
 
-            // Convert back to string
             int size_needed = WideCharToMultiByte(CP_UTF8, 0, wcode.c_str(), (int)wcode.size(), NULL, 0, NULL, NULL);
             std::string code(size_needed, 0);
             WideCharToMultiByte(CP_UTF8, 0, wcode.c_str(), (int)wcode.size(), &code[0], size_needed, NULL, NULL);
@@ -955,9 +1386,9 @@ LRESULT CALLBACK AgentGUI::WndProc(HWND hWnd, UINT msg, WPARAM w, LPARAM l) {
                 activate_agent_async(code, self_->hSaveBtn_, self_->hSaveStatusLabel_, self_->hCodeEdit_);
             } else {
                 if (save_config_key(code)) {
-                    SetWindowTextW(self_->hSaveStatusLabel_, L"\u041A\u043E\u0434 \u0441\u043E\u0445\u0440\u0430\u043D\u0451\u043D! \u041F\u0435\u0440\u0435\u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u0435 \u0430\u0433\u0435\u043D\u0442\u0430"); // "Код сохранён! Перезапустите агента"
+                    SetWindowTextW(self_->hSaveStatusLabel_, L"\u041A\u043E\u0434 \u0441\u043E\u0445\u0440\u0430\u043D\u0451\u043D! \u041F\u0435\u0440\u0435\u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u0435 \u0430\u0433\u0435\u043D\u0442\u0430");
                 } else {
-                    SetWindowTextW(self_->hSaveStatusLabel_, L"\u041E\u0448\u0438\u0431\u043A\u0430 \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F"); // "Ошибка сохранения"
+                    SetWindowTextW(self_->hSaveStatusLabel_, L"\u041E\u0448\u0438\u0431\u043A\u0430 \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F");
                 }
             }
         }
@@ -975,6 +1406,7 @@ LRESULT CALLBACK AgentGUI::WndProc(HWND hWnd, UINT msg, WPARAM w, LPARAM l) {
         RECT cr;
         if (self_->hContent_) GetClientRect(self_->hContent_, &cr);
         if (self_->hDashPanel_) SetWindowPos(self_->hDashPanel_, NULL, 0, 0, cr.right, cr.bottom, SWP_NOZORDER);
+        if (self_->hGamesPanel_) SetWindowPos(self_->hGamesPanel_, NULL, 0, 0, cr.right, cr.bottom, SWP_NOZORDER);
         if (self_->hSettingsPanel_) SetWindowPos(self_->hSettingsPanel_, NULL, 0, 0, cr.right, cr.bottom, SWP_NOZORDER);
         if (self_->hTasksPanel_) SetWindowPos(self_->hTasksPanel_, NULL, 0, 0, cr.right, cr.bottom, SWP_NOZORDER);
         if (self_->hTaskList_)
