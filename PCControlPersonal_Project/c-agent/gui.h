@@ -32,6 +32,7 @@ public:
     HWND get_handle() const { return hWnd_; }
 
     static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+    static LRESULT CALLBACK SubclassPanelProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
 
 private:
     HINSTANCE hInst_;
@@ -41,15 +42,28 @@ private:
     bool visible_;
     std::string agent_id_;
 
+    // Title bar buttons
+    HWND hBtnMin_, hBtnClose_;
+
     // Sidebar buttons
     HWND hBtnDash_, hBtnSettings_, hBtnTasks_;
     int current_page_;
 
     // Dashboard controls
     HWND hDashPanel_;
-    HWND hCpuBar_, hRamBar_, hDiskBar_;
-    HWND hCpuPct_, hRamPct_, hDiskPct_;
-    HWND hBatteryLabel_, hNetLabel_, hUpLabel_, hIdLabel_, hStatusLabel_;
+
+    // Dashboard dynamic state values for custom GDI painting
+    std::wstring cpu_val_;
+    std::wstring ram_val_;
+    std::wstring disk_val_;
+    int cpu_pct_;
+    int ram_pct_;
+    int disk_pct_;
+    std::wstring battery_;
+    std::wstring network_;
+    std::wstring uptime_;
+    std::wstring status_text_;
+    bool is_online_;
 
     // Settings controls
     HWND hSettingsPanel_;
@@ -63,8 +77,9 @@ private:
     std::vector<TaskEntry> tasks_;
 
     HFONT hFont_, hFontTitle_, hFontBig_;
+    HFONT hFontWindowTitle_, hFontSidebarHeader_, hFontSidebarBtn_, hFontCardTitle_, hFontCardValue_;
     HICON hIcon_;
-    HBRUSH hBrushSide_, hBrushPanel_, hBrushProg_;
+    HBRUSH hBrushSide_, hBrushPanel_, hBrushProg_, hBrushApp_;
 
     void create_fonts();
     void create_window(HINSTANCE hInstance);
@@ -75,8 +90,9 @@ private:
     void switch_page(int idx);
     void update_task_list();
     void update_bottom_bar();
-    void draw_gradient(HDC hdc, RECT& r, COLORREF top, COLORREF bot);
+    void draw_dashboard_panel(HDC hdc);
 
     static AgentGUI* self_;
-    static const int SIDEBAR_W = 180;
+    static const int SIDEBAR_W = 200; // Sidebar is 200px wide matching Python agent
 };
+
