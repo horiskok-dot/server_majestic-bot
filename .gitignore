@@ -14,6 +14,7 @@ __pycache__/
 pcmanager.env
 config.json
 config.private.json
+agent_config.json
 
 # IDE configurations
 .idea/
@@ -51,6 +52,8 @@ scratch/
 dist/
 releases/
 *.exe
+*.obj
+*.res
 *.tar.gz
 *.zip
 *.jar
