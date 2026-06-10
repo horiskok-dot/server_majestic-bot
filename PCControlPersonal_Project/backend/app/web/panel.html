@@ -1,0 +1,1715 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#08111f">
+  <link rel="manifest" href="/manifest.json">
+  <title>PC Control Personal</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #06101f;
+      --bg2: #0b1727;
+      --card: rgba(255, 255, 255, .075);
+      --card-strong: rgba(255, 255, 255, .105);
+      --line: rgba(255, 255, 255, .13);
+      --line-soft: rgba(255, 255, 255, .075);
+      --text: #edf7ff;
+      --muted: #9db3c9;
+      --muted2: #70849a;
+      --blue: #38bdf8;
+      --blue2: #60a5fa;
+      --green: #22c55e;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --violet: #a78bfa;
+      --shadow: 0 24px 80px rgba(0, 0, 0, .38);
+      --radius: 24px;
+      --sidebar: 288px;
+    }
+    * { box-sizing: border-box; }
+    html { min-height: 100%; background: var(--bg); }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "Inter", "Noto Sans", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 8% 5%, rgba(56, 189, 248, .24), transparent 28%),
+        radial-gradient(circle at 94% 0%, rgba(34, 197, 94, .16), transparent 28%),
+        radial-gradient(circle at 82% 72%, rgba(167, 139, 250, .10), transparent 30%),
+        linear-gradient(140deg, #050b16 0%, #081626 52%, #06101f 100%);
+      overflow-x: hidden;
+    }
+    button, input, select, textarea { font: inherit; }
+    button {
+      border: 0;
+      border-radius: 16px;
+      padding: 12px 16px;
+      background: linear-gradient(135deg, var(--blue), #7dd3fc);
+      color: #03101d;
+      font-weight: 850;
+      cursor: pointer;
+      transition: transform .16s ease, box-shadow .16s ease, opacity .16s ease, background .16s ease;
+      box-shadow: 0 14px 38px rgba(56, 189, 248, .18);
+      min-height: 46px;
+    }
+    button:hover { transform: translateY(-1px); box-shadow: 0 18px 48px rgba(56, 189, 248, .24); }
+    button:disabled { opacity: .55; cursor: not-allowed; transform: none; box-shadow: none; }
+    button.secondary { color: var(--text); background: rgba(255, 255, 255, .075); border: 1px solid var(--line); box-shadow: none; }
+    button.ghost { color: var(--muted); background: transparent; border: 1px solid transparent; box-shadow: none; }
+    button.danger { color: white; background: linear-gradient(135deg, var(--red), #fb7185); box-shadow: 0 14px 38px rgba(239, 68, 68, .18); }
+    button.warning { color: #201406; background: linear-gradient(135deg, var(--amber), #fbbf24); box-shadow: 0 14px 38px rgba(245, 158, 11, .16); }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(2, 8, 18, .58);
+      color: var(--text);
+      padding: 12px 14px;
+      outline: none;
+      min-height: 46px;
+    }
+    input:focus, select:focus, textarea:focus { border-color: rgba(56, 189, 248, .65); box-shadow: 0 0 0 4px rgba(56, 189, 248, .10); }
+    a { color: var(--blue); }
+    .hidden { display: none !important; }
+    .app-shell { display: grid; grid-template-columns: var(--sidebar) 1fr; min-height: 100vh; }
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 22px;
+      border-right: 1px solid var(--line);
+      background: rgba(3, 10, 22, .72);
+      backdrop-filter: blur(22px);
+      z-index: 5;
+    }
+    .brand { display: flex; gap: 13px; align-items: center; margin-bottom: 22px; }
+    .logo {
+      width: 52px;
+      height: 52px;
+      border-radius: 19px;
+      display: grid;
+      place-items: center;
+      color: #02121f;
+      font-weight: 950;
+      letter-spacing: -.04em;
+      background: linear-gradient(135deg, var(--blue), var(--green));
+      box-shadow: 0 18px 52px rgba(56, 189, 248, .25);
+    }
+    .brand h1 { margin: 0; font-size: 20px; letter-spacing: -.04em; }
+    .brand p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+    .nav { display: grid; gap: 8px; }
+    .nav button {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 28px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      text-align: left;
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid transparent;
+      box-shadow: none;
+    }
+    .nav button.active, .nav button:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, .075);
+      border-color: var(--line);
+    }
+    .nav .icon { font-size: 18px; filter: saturate(.9); }
+    .sidebar-actions { margin-top: 18px; display: grid; gap: 10px; }
+    .main {
+      width: 100%;
+      max-width: 1560px;
+      margin: 0 auto;
+      padding: 28px;
+      padding-bottom: 38px;
+    }
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    .title h2 { margin: 0; font-size: clamp(28px, 4vw, 42px); letter-spacing: -.06em; line-height: 1; }
+    .title p { margin: 9px 0 0; color: var(--muted); line-height: 1.45; }
+    .top-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 11px;
+      font-size: 12px;
+      font-weight: 850;
+      background: rgba(255, 255, 255, .065);
+      white-space: nowrap;
+    }
+    .chip:before { content: ""; width: 7px; height: 7px; border-radius: 999px; background: currentColor; box-shadow: 0 0 18px currentColor; }
+    .ok { color: var(--green); }
+    .warn { color: var(--amber); }
+    .bad { color: var(--red); }
+    .info { color: var(--blue); }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .grid-2 { display: grid; grid-template-columns: 1.1fr .9fr; gap: 14px; }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.085), rgba(255,255,255,.045));
+      box-shadow: var(--shadow);
+      padding: 18px;
+      overflow: hidden;
+      position: relative;
+    }
+    .card:after {
+      content: "";
+      position: absolute;
+      inset: auto -60px -90px auto;
+      width: 160px;
+      height: 160px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, .07);
+      pointer-events: none;
+    }
+    .card > * { position: relative; z-index: 1; }
+    .card h3 { margin: 0 0 14px; font-size: 18px; letter-spacing: -.02em; }
+    .metric { min-height: 138px; display: flex; flex-direction: column; justify-content: space-between; }
+    .metric .label { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 13px; }
+    .metric .value { margin: 14px 0 4px; font-size: clamp(26px, 3vw, 36px); line-height: 1; font-weight: 950; letter-spacing: -.06em; word-break: break-word; }
+    .metric .sub { color: var(--muted); font-size: 13px; line-height: 1.38; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 14px; }
+    .toolbar > * { flex: 1; min-width: 170px; }
+    .action-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+    .action-tile {
+      min-height: 92px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      text-align: left;
+    }
+    .action-tile span { font-size: 22px; }
+    .list { display: grid; gap: 10px; max-height: 650px; overflow: auto; padding-right: 2px; }
+    .row {
+      border: 1px solid var(--line-soft);
+      border-radius: 18px;
+      padding: 14px;
+      background: rgba(3, 10, 22, .45);
+    }
+    .row-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .row b { display: block; line-height: 1.35; word-break: break-word; }
+    .row p { margin: 8px 0 0; color: var(--muted); line-height: 1.48; word-break: break-word; }
+    .empty {
+      border: 1px dashed rgba(255,255,255,.16);
+      border-radius: 22px;
+      padding: 26px;
+      color: var(--muted);
+      background: rgba(255,255,255,.035);
+      text-align: center;
+    }
+    .empty strong { display: block; color: var(--text); margin-bottom: 6px; font-size: 18px; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 20px; }
+    table { width: 100%; border-collapse: collapse; min-width: 720px; }
+    th, td { padding: 13px 14px; border-bottom: 1px solid var(--line-soft); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; background: rgba(255,255,255,.035); }
+    td { color: var(--text); }
+    tr:last-child td { border-bottom: 0; }
+    .terminal {
+      margin: 0;
+      min-height: 360px;
+      max-height: 640px;
+      overflow: auto;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(1, 6, 14, .82);
+      color: #d7f4ff;
+      font: 13px/1.55 "Cascadia Mono", "Fira Code", Consolas, monospace;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .breadcrumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .crumb {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 11px;
+      color: var(--muted);
+      background: rgba(255,255,255,.045);
+      cursor: pointer;
+    }
+    .storage-bar { height: 12px; border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; margin-top: 12px; }
+    .storage-bar span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--blue), var(--green)); }
+    .drop {
+      border: 1px dashed rgba(56, 189, 248, .55);
+      border-radius: 20px;
+      padding: 22px;
+      text-align: center;
+      color: var(--muted);
+      background: rgba(56, 189, 248, .055);
+    }
+    .login {
+      width: min(560px, calc(100vw - 32px));
+      margin: 9vh auto;
+      padding: 30px;
+      border: 1px solid var(--line);
+      border-radius: 32px;
+      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.045));
+      box-shadow: var(--shadow);
+    }
+    .login h2 { margin: 0 0 8px; font-size: 38px; letter-spacing: -.06em; }
+    .login p { margin: 0; color: var(--muted); line-height: 1.55; }
+    .login form { display: grid; gap: 12px; margin-top: 20px; }
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 20;
+      width: min(560px, calc(100vw - 40px));
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 15px 16px;
+      background: #071426;
+      color: var(--text);
+      box-shadow: var(--shadow);
+      white-space: pre-wrap;
+    }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgba(0,0,0,.62);
+      backdrop-filter: blur(10px);
+    }
+    .modal {
+      width: min(520px, 100%);
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      background: #081426;
+      box-shadow: var(--shadow);
+      padding: 22px;
+    }
+    .modal h3 { margin: 0 0 10px; }
+    .modal p { margin: 0 0 18px; color: var(--muted); line-height: 1.5; }
+    .skeleton {
+      min-height: 110px;
+      border-radius: var(--radius);
+      background: linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.12), rgba(255,255,255,.06));
+      background-size: 220% 100%;
+      animation: shimmer 1.2s infinite linear;
+    }
+    @keyframes shimmer { to { background-position: -220% 0; } }
+    .mobile-nav { display: none; }
+    @media (max-width: 1180px) {
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid-3, .grid-2 { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 820px) {
+      body { font-size: 15px; }
+      .app-shell { grid-template-columns: 1fr; }
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: auto;
+        padding: 10px 14px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+        background: rgba(3, 10, 22, .92);
+      }
+      .brand { margin-bottom: 0; }
+      .brand .logo { width: 42px; height: 42px; border-radius: 15px; }
+      .brand h1 { font-size: 17px; }
+      .brand p { font-size: 12px; }
+      .sidebar .nav { display: none; }
+      .sidebar-actions { display: none; }
+      .main { padding: 14px; padding-bottom: calc(154px + env(safe-area-inset-bottom)); }
+      .topbar { flex-direction: column; gap: 12px; margin-bottom: 14px; }
+      .title h2 { font-size: 32px; line-height: 1.05; }
+      .title p { font-size: 14px; }
+      .top-actions { width: 100%; justify-content: stretch; }
+      .top-actions button, .top-actions .chip { flex: 1; justify-content: center; }
+      .grid { grid-template-columns: 1fr; }
+      .action-grid { grid-template-columns: 1fr; }
+      .card { padding: 14px; border-radius: 20px; }
+      .metric { min-height: 112px; }
+      .metric .value { font-size: 28px; }
+      .toolbar {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 9px;
+      }
+      .toolbar > * { min-width: 0; width: 100%; }
+      .toolbar button { min-height: 54px; padding: 10px 10px; border-radius: 15px; }
+      .terminal { min-height: 260px; max-height: 58vh; font-size: 12px; }
+      .table-wrap { border-radius: 16px; }
+      table { min-width: 620px; font-size: 13px; }
+      th, td { padding: 10px; }
+      .toast {
+        left: 12px;
+        right: 12px;
+        bottom: calc(142px + env(safe-area-inset-bottom));
+        width: auto;
+      }
+      .mobile-nav {
+        position: fixed;
+        left: 8px;
+        right: 8px;
+        bottom: calc(8px + env(safe-area-inset-bottom));
+        z-index: 15;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+        padding: 7px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: rgba(3,10,22,.94);
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
+      }
+      .mobile-nav button {
+        min-height: 50px;
+        padding: 7px 5px;
+        border-radius: 15px;
+        background: transparent;
+        color: var(--muted);
+        box-shadow: none;
+        font-size: 11px;
+        line-height: 1.15;
+      }
+      .mobile-nav button.active { background: rgba(56,189,248,.14); color: var(--text); border: 1px solid rgba(56,189,248,.22); }
+    }
+    @media (max-width: 430px) {
+      .toolbar { grid-template-columns: 1fr; }
+      .top-actions { display: grid; grid-template-columns: 1fr 1fr; }
+      .mobile-nav button { font-size: 10px; }
+    }
+
+    /* AI Chat Styles */
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 200px);
+      min-height: 520px;
+      background: rgba(3, 10, 22, 0.45);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      backdrop-filter: blur(16px);
+      box-shadow: var(--shadow);
+    }
+    .chat-messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .chat-message {
+      display: flex;
+      gap: 12px;
+      max-width: 80%;
+      animation: fadeIn 0.3s ease;
+    }
+    .chat-message.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+    .chat-message.ai {
+      align-self: flex-start;
+    }
+    .chat-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      background: var(--card-strong);
+      border: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+    .chat-message.user .chat-avatar {
+      background: linear-gradient(135deg, var(--blue), var(--violet));
+    }
+    .chat-message.ai .chat-avatar {
+      background: linear-gradient(135deg, #ef4444, #f59e0b);
+    }
+    .chat-bubble {
+      padding: 14px 18px;
+      border-radius: 20px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .chat-message.user .chat-bubble {
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-top-right-radius: 4px;
+    }
+    .chat-message.ai .chat-bubble {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--line);
+      border-top-left-radius: 4px;
+    }
+    .chat-input-bar {
+      display: flex;
+      gap: 12px;
+      padding: 16px 20px;
+      background: rgba(2, 8, 18, 0.72);
+      border-top: 1px solid var(--line);
+      align-items: center;
+    }
+    .chat-input-bar input {
+      flex: 1;
+    }
+    .chat-input-bar button {
+      white-space: nowrap;
+    }
+    .ai-suggested-prompts {
+      display: flex;
+      gap: 10px;
+      padding: 10px 20px;
+      overflow-x: auto;
+      border-top: 1px solid var(--line-soft);
+      background: rgba(2, 8, 18, 0.4);
+    }
+    .ai-suggested-prompts button {
+      font-size: 12px;
+      padding: 6px 12px;
+      min-height: auto;
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      padding: 4px 8px;
+      align-items: center;
+    }
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--muted);
+      border-radius: 50%;
+      animation: typing 1.4s infinite ease-in-out both;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typing {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Mobile AI Chat Responsiveness */
+    @media (max-width: 820px) {
+      .chat-container {
+        height: calc(100vh - 290px) !important;
+        min-height: 380px !important;
+      }
+      .chat-messages {
+        padding: 12px 14px !important;
+        gap: 12px !important;
+      }
+      .chat-message {
+        max-width: 90% !important;
+        gap: 8px !important;
+      }
+      .chat-avatar {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 16px !important;
+      }
+      .chat-bubble {
+        padding: 10px 14px !important;
+        font-size: 13.5px !important;
+      }
+      .ai-suggested-prompts {
+        padding: 8px 14px !important;
+        gap: 6px !important;
+      }
+      .ai-suggested-prompts button {
+        font-size: 11px !important;
+        padding: 5px 10px !important;
+      }
+      .chat-input-bar {
+        padding: 10px 14px !important;
+        gap: 8px !important;
+      }
+      .chat-input-bar input {
+        font-size: 13.5px !important;
+        padding: 8px 12px !important;
+      }
+      .chat-input-bar button {
+        padding: 8px 12px !important;
+        font-size: 13.5px !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="loginView" class="login">
+    <div class="brand">
+      <div class="logo">PC</div>
+      <div>
+        <h1>PC Control Personal</h1>
+        <p>Домашняя панель сервера</p>
+      </div>
+    </div>
+    <h2>Вход</h2>
+    <p>Введите Admin Token из конфигурации. Секреты не показываются на странице и не отправляются в логи.</p>
+    <form id="loginForm">
+      <input id="adminToken" type="password" autocomplete="current-password" placeholder="Admin Token">
+      <button type="submit" id="loginBtn">Войти</button>
+      <button type="button" class="secondary" id="pingBtn">Проверить сервер</button>
+    </form>
+  </div>
+
+  <div id="appView" class="app-shell hidden">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">PC</div>
+        <div>
+          <h1>PC Control</h1>
+          <p id="sideStatus">сервер</p>
+        </div>
+      </div>
+      <nav id="nav" class="nav"></nav>
+      <div class="sidebar-actions">
+        <button class="secondary" id="refreshBtn">Обновить</button>
+        <button class="secondary" id="logoutBtn">Выйти</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="title">
+          <h2 id="pageTitle">Dashboard</h2>
+          <p id="pageSubtitle">Живой статус домашнего сервера</p>
+        </div>
+        <div class="top-actions">
+          <span id="connectionChip" class="chip warn">loading</span>
+          <button class="secondary" onclick="refreshAll(true)">Refresh</button>
+        </div>
+      </div>
+      <section id="content">
+        <div class="grid"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+      </section>
+    </main>
+    <nav id="mobileNav" class="mobile-nav"></nav>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <div id="modalRoot"></div>
+
+<script>
+const state = {
+  base: `${location.protocol}//${location.host}`,
+  token: localStorage.getItem("pcmanager.jwt") || "",
+  page: location.hash.replace("#", "") || localStorage.getItem("pcmanager.page") || "dashboard",
+  filePath: localStorage.getItem("pcmanager.filePath") || "",
+  logTab: "errors",
+  data: {},
+  loading: false,
+  busy: new Set(),
+  refreshTimer: null,
+};
+
+if (!state.chat) {
+  state.chat = [
+    { role: "ai", content: "Привет! Я твой локальный ИИ-ассистент Gravity. Запущен локально на твоем Windows-ПК. Могу помочь тебе управлять сервером или ответить на любой вопрос!", model: "qwen-uncensored:latest" }
+  ];
+}
+
+const pages = [
+  ["dashboard", "Dashboard", "🏠"],
+  ["network", "Network", "🌐"],
+  ["agent", "PC Agent", "🖥️"],
+  ["files", "Files", "📁"],
+  ["backups", "Backups", "🛡️"],
+  ["logs", "Logs", "📜"],
+  ["maintenance", "Maintenance", "🧰"],
+  ["settings", "Settings", "⚙️"],
+];
+const mobileLabels = {
+  dashboard: "Дом",
+  network: "Сеть",
+  agent: "ПК",
+  ai: "ИИ",
+  files: "Файлы",
+  backups: "Backup",
+  logs: "Логи",
+  maintenance: "Сервис",
+  settings: "Настр.",
+};
+
+const $ = id => document.getElementById(id);
+const esc = value => String(value ?? "").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
+const fmtDate = value => value ? new Date(value).toLocaleString("ru-RU") : "—";
+const fmtTime = value => value ? new Date(value).toLocaleTimeString("ru-RU") : "—";
+const fmtSize = bytes => {
+  const n = Number(bytes || 0);
+  if (n >= 1024 ** 4) return `${(n / 1024 ** 4).toFixed(2)} TB`;
+  if (n >= 1024 ** 3) return `${(n / 1024 ** 3).toFixed(2)} GB`;
+  if (n >= 1024 ** 2) return `${(n / 1024 ** 2).toFixed(1)} MB`;
+  if (n >= 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${n} B`;
+};
+const pct = value => `${Number(value || 0).toFixed(1)}%`;
+const statusClass = value => {
+  const v = String(value ?? "").toLowerCase();
+  if (["ok","online","active","success","true","yes"].includes(v)) return "ok";
+  if (["warning","warn","unstable"].includes(v)) return "warn";
+  if (["error","critical","offline","failed","false","inactive"].includes(v)) return "bad";
+  return "info";
+};
+const statusText = value => String(value ?? "—").toUpperCase();
+
+function persistUiState() {
+  localStorage.setItem("pcmanager.page", state.page);
+  localStorage.setItem("pcmanager.filePath", state.filePath);
+  if (location.hash.replace("#", "") !== state.page) history.replaceState(null, "", `#${state.page}`);
+}
+
+function toast(message, kind = "info") {
+  const box = $("toast");
+  box.textContent = message;
+  box.className = `toast ${kind}`;
+  box.classList.remove("hidden");
+  clearTimeout(box._timer);
+  box._timer = setTimeout(() => box.classList.add("hidden"), 5200);
+}
+
+function setBusy(key, value) {
+  if (value) state.busy.add(key); else state.busy.delete(key);
+  document.querySelectorAll(`[data-busy-key="${key}"]`).forEach(btn => {
+    btn.disabled = value;
+    btn.dataset.originalText ||= btn.textContent;
+    btn.textContent = value ? "Выполняется..." : btn.dataset.originalText;
+  });
+}
+
+function confirmModal(title, message, confirmText = "Подтвердить") {
+  return new Promise(resolve => {
+    $("modalRoot").innerHTML = `
+      <div class="modal-backdrop">
+        <div class="modal">
+          <h3>${esc(title)}</h3>
+          <p>${esc(message)}</p>
+          <div class="toolbar" style="margin:0">
+            <button class="danger" id="modalYes">${esc(confirmText)}</button>
+            <button class="secondary" id="modalNo">Отмена</button>
+          </div>
+        </div>
+      </div>`;
+    $("modalYes").onclick = () => { $("modalRoot").innerHTML = ""; resolve(true); };
+    $("modalNo").onclick = () => { $("modalRoot").innerHTML = ""; resolve(false); };
+  });
+}
+
+async function api(path, options = {}) {
+  const headers = new Headers(options.headers || {});
+  if (!(options.body instanceof FormData)) headers.set("Content-Type", "application/json");
+  if (state.token) {
+    headers.set("Authorization", `Bearer ${state.token}`);
+    headers.set("X-Server-Access-Key", state.token);
+  }
+  const response = await fetch(state.base + path, {...options, headers});
+  if (!response.ok) {
+    if (response.status === 401) {
+      state.token = "";
+      localStorage.removeItem("pcmanager.jwt");
+      $("appContainer").style.display = "none";
+      $("loginView").style.display = "flex";
+      throw new Error("Сессия устарела. Пожалуйста, войдите заново.");
+    }
+    const text = await response.text();
+    throw new Error(text || `${response.status} ${response.statusText}`);
+  }
+  const type = response.headers.get("content-type") || "";
+  return type.includes("application/json") ? response.json() : response.blob();
+}
+
+async function safe(path, fallback) {
+  try { return await api(path); } catch (error) { return {...fallback, __error: error.message}; }
+}
+
+function metric(title, value, sub = "", status = "info", icon = "•") {
+  return `
+    <div class="card metric">
+      <div class="label"><span>${esc(icon)} ${esc(title)}</span><span class="chip ${statusClass(status)}">${esc(statusText(status))}</span></div>
+      <div class="value">${esc(value)}</div>
+      <div class="sub">${esc(sub)}</div>
+    </div>`;
+}
+
+function emptyState(title, text, icon = "◎") {
+  return `<div class="empty"><strong>${esc(icon)} ${esc(title)}</strong><span>${esc(text)}</span></div>`;
+}
+
+function row(title, body, actions = "") {
+  return `<div class="row"><div class="row-head"><b>${title}</b><div>${actions}</div></div><p>${body}</p></div>`;
+}
+
+function renderNav() {
+  const html = pages.map(([id, title, icon]) => `<button class="${state.page === id ? "active" : ""}" data-page="${id}"><span class="icon">${icon}</span><span>${title}</span><span>›</span></button>`).join("");
+  $("nav").innerHTML = html;
+  $("mobileNav").innerHTML = pages.slice(0, 8).map(([id, title, icon]) => `<button class="${state.page === id ? "active" : ""}" data-page="${id}"><div>${icon}</div><div>${mobileLabels[id] || title.split(" ")[0]}</div></button>`).join("");
+  document.querySelectorAll("[data-page]").forEach(btn => btn.onclick = () => {
+    state.page = btn.dataset.page;
+    persistUiState();
+    render();
+  });
+}
+
+async function login(token) {
+  $("loginBtn").disabled = true;
+  try {
+    const response = await fetch(state.base + "/api/auth/login", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({admin_token: token}),
+    });
+    if (!response.ok) throw new Error(await response.text());
+    const data = await response.json();
+    state.token = data.access_token;
+    localStorage.setItem("pcmanager.jwt", state.token);
+    $("loginView").classList.add("hidden");
+    $("appView").classList.remove("hidden");
+    startAutoRefresh();
+    await refreshAll(true);
+  } finally {
+    $("loginBtn").disabled = false;
+  }
+}
+
+async function refreshAll(showLoading = false) {
+  if (state.loading) return;
+  state.loading = true;
+  if (showLoading) $("connectionChip").textContent = "loading";
+  const currentPage = state.page;
+  const currentPath = state.filePath;
+  const [
+    home, errors, serverInfo, features, agents, tasks, files, storage, backups,
+    network, devices, temperature, health, logsServer, logsBot, logsErrors, diagnostics, reports
+  ] = await Promise.all([
+    safe("/api/home/status", {}),
+    safe("/api/home/errors", []),
+    safe("/api/mobile/server-info", {}),
+    safe("/api/server/features", {}),
+    safe("/api/agents", []),
+    safe("/api/tasks", []),
+    safe(`/api/files/list?path=${encodeURIComponent(currentPath)}`, {path: currentPath, items: []}),
+    safe("/api/files/storage", {}),
+    safe("/api/backups", {backups: []}),
+    safe("/api/network/status", {}),
+    safe("/api/network/devices", {devices: []}),
+    safe("/api/system/temperature", {}),
+    safe("/api/health-score", {}),
+    safe("/api/logs/server", {text: ""}),
+    safe("/api/logs/bot", {text: ""}),
+    safe("/api/logs/errors", {lines: []}),
+    safe("/api/diagnostics/latest", {}),
+    safe("/api/diagnostics/reports", []),
+  ]);
+  state.data = {home, errors, serverInfo, features, agents, tasks, files, storage, backups, network, devices, temperature, health, logsServer, logsBot, logsErrors, diagnostics, reports};
+  state.page = currentPage;
+  state.filePath = currentPath;
+  const ip = home.server?.local_ip || serverInfo.local_ip || "server";
+  $("sideStatus").textContent = `${ip}:${home.server?.port || serverInfo.server_port || 8765}`;
+  $("connectionChip").textContent = "online";
+  $("connectionChip").className = "chip ok";
+  state.loading = false;
+  persistUiState();
+  render();
+}
+
+function startAutoRefresh() {
+  clearInterval(state.refreshTimer);
+  state.refreshTimer = setInterval(() => {
+    if (!document.hidden && state.token && ["dashboard", "network", "agent"].includes(state.page)) {
+      refreshAll(false).catch(() => {
+        state.loading = false;
+        $("connectionChip").textContent = "offline";
+        $("connectionChip").className = "chip bad";
+      });
+    }
+  }, 15000);
+}
+
+function renderDashboard() {
+  const h = state.data.home || {};
+  const sys = h.system || h.metrics || {};
+  const net = state.data.network || h.network || {};
+  const temp = state.data.temperature || {};
+  const health = state.data.health || {};
+  const latestBackup = h.latest_backup || {};
+  const errors = Array.isArray(state.data.errors) ? state.data.errors : (state.data.errors?.errors || h.errors || []);
+  $("pageTitle").textContent = "Dashboard";
+  $("pageSubtitle").textContent = "Главная домашняя панель сервера, сети, агента и backup.";
+  return `
+    <div class="grid">
+      ${metric("Server Online", h.server?.online ? "Online" : "Offline", `uptime: ${h.server?.uptime || "—"}`, h.server?.online ? "ok" : "error", "🟢")}
+      ${metric("Health", `${health.score ?? "—"}/100`, (health.reasons || []).slice(0,1).join("") || "общий статус", health.score >= 85 ? "ok" : health.score >= 65 ? "warning" : "error", "💚")}
+      ${metric("CPU", pct(sys.cpu_percent), "нагрузка процессора", Number(sys.cpu_percent) < 80 ? "ok" : "warning", "⚙️")}
+      ${metric("RAM", pct(sys.ram_percent), `${fmtSize(sys.ram_used)} / ${fmtSize(sys.ram_total)}`, Number(sys.ram_percent) < 85 ? "ok" : "warning", "🧠")}
+      ${metric("Disk", pct(sys.disk_percent), `${fmtSize(sys.data_free)} свободно`, Number(sys.disk_percent) < 85 ? "ok" : "warning", "💾")}
+      ${metric("Temperature", temp.max_c ? `${temp.max_c}°C` : (sys.temperature ? `${sys.temperature}°C` : "—"), temp.install_hint || "CPU / thermal", temp.status || "info", "🌡️")}
+      ${metric("Internet", net.internet_ok ? "OK" : "Offline", net.dns_ok ? "DNS OK" : "DNS failed", net.internet_ok ? "ok" : "error", "🌍")}
+      ${metric("LAN Speed", net.lan_speed || h.network?.ethernet_speed || "—", `router: ${net.router_ip || "—"}`, "info", "🔌")}
+      ${metric("Telegram Bot", h.services?.bot || h.server?.telegram_bot || "—", "pcmanager-bot", h.services?.bot || h.server?.telegram_bot, "🤖")}
+      ${metric("Windows Agent", `${h.agents?.online || 0}/${h.agents?.total || 0}`, "online / всего", h.agents?.online ? "ok" : "warning", "🖥️")}
+      ${metric("Last Backup", latestBackup.name || h.backup?.latest || "нет", latestBackup.created_at ? fmtDate(latestBackup.created_at) : "перед изменениями делай backup", latestBackup.name ? "ok" : "warning", "🛡️")}
+      ${metric("Last Errors", String(errors.length || 0), "ошибки/предупреждения", errors.length ? "warning" : "ok", "⚠️")}
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h3>Быстрые действия</h3>
+      <div class="action-grid">
+        <button class="action-tile" data-busy-key="check" onclick="runCheck()"><span>🩺</span>Проверить всё</button>
+        <button class="action-tile danger" data-busy-key="restart-backend" onclick="maintenanceAction('restart-backend', true)"><span>🔁</span>Перезапустить backend</button>
+        <button class="action-tile warning" data-busy-key="restart-bot" onclick="maintenanceAction('restart-bot', true)"><span>🤖</span>Перезапустить bot</button>
+        <button class="action-tile" data-busy-key="backup" onclick="createBackup('project')"><span>🛡️</span>Создать backup</button>
+        <button class="action-tile secondary" onclick="goPage('logs')"><span>📜</span>Открыть логи</button>
+      </div>
+    </div>
+    <div class="grid-2" style="margin-top:14px">
+      <div class="card"><h3>Последние ошибки</h3><div class="list">${errors.slice(0, 10).map(e => row(`${esc(e.source || "log")} · ${esc(e.level || "WARN")}`, esc(e.message || e.event || e.line || "—"), `<span class="chip ${statusClass(e.level)}">${esc(e.level || "warn")}</span>`)).join("") || emptyState("Ошибок не видно", "За последнее время критичных сообщений нет.", "✅")}</div></div>
+      <div class="card"><h3>Что происходит</h3><div class="list">
+        ${row("Сервер", `Base URL: ${esc(serverBaseUrl())}<br>WebSocket: ${esc(wsUrl())}`)}
+        ${row("Диагностика", `${esc(state.data.diagnostics?.status || "—")} · ${esc(state.data.diagnostics?.summary || "отчёт пока не загружен")}`)}
+        ${row("Network", `RX: ${fmtSize(net.traffic?.rx_bytes)} · TX: ${fmtSize(net.traffic?.tx_bytes)}<br>Router ping: ${net.router_ping?.ms ?? "—"} ms`)}
+      </div></div>
+    </div>`;
+}
+
+function renderNetwork() {
+  const n = state.data.network || {};
+  const devices = state.data.devices?.devices || [];
+  $("pageTitle").textContent = "Network";
+  $("pageSubtitle").textContent = "LAN, ping, DNS, traffic и устройства в домашней сети.";
+  return `
+    <div class="grid">
+      ${metric("LAN Speed", n.lan_speed || "—", n.iface || "interface", "info", "🔌")}
+      ${metric("Router Ping", n.router_ping?.ok ? `${n.router_ping.ms ?? "—"} ms` : "failed", n.router_ip || "router", n.router_ping?.ok ? "ok" : "warning", "📡")}
+      ${metric("Google Ping", n.google_ping?.ok ? `${n.google_ping.ms ?? "—"} ms` : "failed", "8.8.8.8", n.google_ping?.ok ? "ok" : "warning", "G")}
+      ${metric("Cloudflare Ping", n.cloudflare_ping?.ok ? `${n.cloudflare_ping.ms ?? "—"} ms` : "failed", "1.1.1.1", n.cloudflare_ping?.ok ? "ok" : "warning", "C")}
+      ${metric("Internet", n.internet_ok ? "OK" : "Offline", n.dns_ok ? "DNS работает" : "DNS не отвечает", n.internet_ok ? "ok" : "error", "🌍")}
+      ${metric("Traffic RX", fmtSize(n.traffic?.rx_bytes), "получено", "info", "⬇️")}
+      ${metric("Traffic TX", fmtSize(n.traffic?.tx_bytes), "отправлено", "info", "⬆️")}
+      ${metric("Last Check", fmtTime(n.time), "обновляется автоматически", "info", "⏱️")}
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div class="row-head"><h3>Devices in LAN</h3><button data-busy-key="scan" onclick="scanLan()">Scan LAN</button></div>
+      ${devices.length ? deviceTable(devices) : emptyState("Устройства пока не найдены", "Нажми Scan LAN или подожди, пока сервер увидит устройства через ip neigh.", "🌐")}
+    </div>`;
+}
+
+function deviceTable(devices) {
+  return `<div class="table-wrap"><table><thead><tr><th>Status</th><th>IP</th><th>MAC</th><th>Name / Hostname</th><th>Last seen</th><th>Action</th></tr></thead><tbody>${devices.map(d => `
+    <tr>
+      <td><span class="chip ${d.online ? "ok" : "bad"}">${d.online ? "online" : "offline"}</span></td>
+      <td>${esc(d.ip)}</td>
+      <td>${esc(d.mac)}</td>
+      <td>${esc(d.name || d.hostname || "—")}</td>
+      <td>${fmtDate(d.last_seen)}</td>
+      <td><button class="secondary" onclick="markDeviceKnown('${esc(d.id)}')">Known</button></td>
+    </tr>`).join("")}</tbody></table></div>`;
+}
+
+function renderAgent() {
+  const agents = Array.isArray(state.data.agents) ? state.data.agents : [];
+  const agent = agents[0];
+  $("pageTitle").textContent = "PC Agent";
+  $("pageSubtitle").textContent = "Статус Windows Agent и безопасные команды.";
+  if (!agent) {
+    return `<div class="card">${emptyState("Windows Agent не подключён", "Проверь pc-agent/agent_config.json, WebSocket URL ws://192.168.0.194:8765/ws/agent, access key и запуск agent.py.", "🖥️")}</div>`;
+  }
+  const sys = agent.system_info || {};
+  const disk = agent.disk_info || {};
+  return `
+    <div class="grid">
+      ${metric("Agent", agent.status || "offline", agent.name || agent.agent_id, agent.status, "🖥️")}
+      ${metric("Hostname", agent.hostname || "—", agent.username || "user", "info", "🏷️")}
+      ${metric("IP", agent.local_ip || "—", agent.public_ip || "local", "info", "🌐")}
+      ${metric("Version", agent.version || "—", agent.os_name || agent.platform || "Windows", "info", "📦")}
+      ${metric("Latency", `${agent.latency || agent.latency_ms || 0} ms`, fmtDate(agent.last_seen || agent.last_seen_at), "info", "⏱️")}
+      ${metric("CPU", sys.cpu_percent != null ? pct(sys.cpu_percent) : "—", "из heartbeat", "info", "⚙️")}
+      ${metric("RAM", sys.ram_percent != null ? pct(sys.ram_percent) : "—", "из heartbeat", "info", "🧠")}
+      ${metric("Disk", disk.percent != null ? pct(disk.percent) : "—", "из heartbeat", "info", "💾")}
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h3>Действия агента</h3>
+      <div class="toolbar">
+        <button class="secondary" onclick="agentTask('${esc(agent.agent_id)}','ping')">Ping</button>
+        <button onclick="agentTask('${esc(agent.agent_id)}','screenshot')">Screenshot</button>
+        <button class="secondary" onclick="agentTask('${esc(agent.agent_id)}','system-info')">System Info</button>
+        <button class="secondary" onclick="agentTask('${esc(agent.agent_id)}','processes')">Processes</button>
+        <button class="secondary" onclick="agentTask('${esc(agent.agent_id)}','disk-info')">Disk Info</button>
+        <button class="secondary" onclick="agentTask('${esc(agent.agent_id)}','logs')">Logs</button>
+        <button class="warning" onclick="restartAllowedApp('${esc(agent.agent_id)}')">Restart allowed app</button>
+      </div>
+      <h3 style="margin-top:16px">Game Control</h3>
+      <p class="muted">Allowlist controls from total_ai_bot: no shell, no PowerShell, only configured keys, click presets and launcher.</p>
+      <div class="toolbar">
+        <button onclick="agentTask('${esc(agent.agent_id)}','screenshot')">Screenshot now</button>
+        <button onclick="agentLaunch('${esc(agent.agent_id)}')">Launch Majestic</button>
+        <button class="secondary" onclick="agentClickPreset('${esc(agent.agent_id)}','play')">Play</button>
+        <button class="secondary" onclick="agentClickPreset('${esc(agent.agent_id)}','char1')">Character 1</button>
+        <button class="secondary" onclick="agentClickPreset('${esc(agent.agent_id)}','char2')">Character 2</button>
+        <button class="secondary" onclick="agentClickPreset('${esc(agent.agent_id)}','house')">House</button>
+        <button class="secondary" onclick="agentClickPreset('${esc(agent.agent_id)}','spawn')">Spawn</button>
+        <button class="secondary" onclick="agentClickPreset('${esc(agent.agent_id)}','spawn2')">Spawn 2</button>
+        <button class="secondary" onclick="agentTask('${esc(agent.agent_id)}','game-status')">Game status</button>
+      </div>
+      <div class="toolbar">
+        <button class="warning" onclick="agentAntiAfk('${esc(agent.agent_id)}','start')">Anti-AFK start</button>
+        <button class="secondary" onclick="agentAntiAfk('${esc(agent.agent_id)}','stop')">Anti-AFK stop</button>
+        <button class="warning" onclick="agentAutoScreen('${esc(agent.agent_id)}','start')">Auto-screen start</button>
+        <button class="secondary" onclick="agentAutoScreen('${esc(agent.agent_id)}','stop')">Auto-screen stop</button>
+        <button class="secondary" onclick="agentTask('${esc(agent.agent_id)}','automation-status')">Automation status</button>
+        <button class="secondary" onclick="agentTask('${esc(agent.agent_id)}','cleanup-screenshots?force=true&keep_last=10')">Clean screenshots (keep 10)</button>
+      </div>
+      <div class="toolbar">
+        ${["w","a","s","d","z","e","esc"].map(k => `<button class="secondary" onclick="agentPressKey('${esc(agent.agent_id)}','${k}')">${k.toUpperCase()}</button>`).join("")}
+        <button class="secondary" onclick="agentVolume('${esc(agent.agent_id)}','up')">Volume +</button>
+        <button class="secondary" onclick="agentVolume('${esc(agent.agent_id)}','down')">Volume -</button>
+        <button class="secondary" onclick="agentDesktop('${esc(agent.agent_id)}','new')">New desktop</button>
+        <button class="secondary" onclick="agentDesktop('${esc(agent.agent_id)}','left')">Desktop ←</button>
+        <button class="secondary" onclick="agentDesktop('${esc(agent.agent_id)}','right')">Desktop →</button>
+        <button class="secondary" onclick="agentDesktop('${esc(agent.agent_id)}','close')">Close desktop</button>
+        <button class="warning" onclick="agentReleaseKeys('${esc(agent.agent_id)}')">Release stuck keys</button>
+      </div>
+      <div class="list">
+        ${row("Текущая задача", esc(agent.current_task || "нет"))}
+        ${row("Последняя ошибка", esc(agent.last_error || "нет"))}
+      </div>
+    </div>`;
+}
+
+function renderMinecraft() {
+  const mc = state.data.minecraft || {};
+  const isOnline = mc.status === "online";
+  $("pageTitle").textContent = "Minecraft Server";
+  $("pageSubtitle").textContent = "Управление сервером, консоль и команды RCON.";
+  
+  return `
+    <div class="grid">
+      ${metric("Status", isOnline ? "Online" : "Offline", "systemd service", isOnline ? "ok" : "error", "⛏️")}
+      ${metric("CPU Usage", mc.cpu || "—", "процесс java", isOnline ? "info" : "warning", "⚙️")}
+      ${metric("RAM Usage", mc.ram || "—", "процесс java", isOnline ? "info" : "warning", "🧠")}
+      ${metric("Server IP", "messages-encyclopedia.gl.joinmc.link", "адрес для игры", "ok", "🌐")}
+    </div>
+    
+    <div class="card" style="margin-top:14px">
+      <h3>Управление питанием</h3>
+      <div class="toolbar">
+        <button class="${isOnline ? 'secondary' : ''}" onclick="minecraftAction('start')" ${isOnline ? 'disabled' : ''}>Включить сервер</button>
+        <button class="danger" onclick="minecraftAction('stop')" ${!isOnline ? 'disabled' : ''}>Выключить</button>
+        <button class="warning" onclick="minecraftAction('restart')">Перезагрузить</button>
+      </div>
+    </div>
+    
+    <div class="grid-2" style="margin-top:14px">
+      <div class="card">
+        <h3>Отправить команду (RCON)</h3>
+        <div style="display:flex; gap:10px; margin-bottom:14px;">
+          <input id="rconInput" placeholder="Например: time set day или weather clear" onkeypress="if(event.key === 'Enter') sendMinecraftCommand()">
+          <button onclick="sendMinecraftCommand()">Отправить</button>
+        </div>
+        <div class="toolbar">
+          <button class="secondary" onclick="document.getElementById('rconInput').value='time set day'; sendMinecraftCommand()">☀️ День</button>
+          <button class="secondary" onclick="document.getElementById('rconInput').value='weather clear'; sendMinecraftCommand()">☁️ Ясно</button>
+          <button class="secondary" onclick="document.getElementById('rconInput').value='save-all'; sendMinecraftCommand()">💾 Сохранить</button>
+        </div>
+        <p class="muted" style="margin-top:10px">Ответ сервера появится в уведомлении.</p>
+      </div>
+      
+      <div class="card">
+        <div class="row-head">
+          <h3>Консоль сервера</h3>
+          <button class="secondary" onclick="fetchMinecraftLogs()">Обновить</button>
+        </div>
+        <pre class="terminal" id="mcLogs" style="margin-top:10px; min-height:280px; max-height:400px; font-size:12px;">Загрузка логов...</pre>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <div class="row-head">
+        <h3>📊 Статистика игроков</h3>
+        <button class="secondary" onclick="fetchPlayerStats()">Обновить</button>
+      </div>
+      <div id="playerStatsTable" style="margin-top:12px">
+        <p class="muted">Загрузка статистики...</p>
+      </div>
+    </div>
+  `;
+}
+
+
+async function fetchPlayerStats() {
+  const el = document.getElementById("playerStatsTable");
+  if (!el) return;
+  try {
+    const res = await api("/api/minecraft/player-stats");
+    const players = res.players || [];
+    if (!players.length) {
+      el.innerHTML = '<p class="muted">Нет данных — никто ещё не заходил на сервер.</p>';
+      return;
+    }
+    const rows = players.map((p, i) => `
+      <tr>
+        <td style="color:var(--muted);">#${i+1}</td>
+        <td><strong style="color:var(--accent)">${esc(p.name)}</strong></td>
+        <td><span style="background:var(--card-bg2);border-radius:6px;padding:2px 10px;font-weight:700;">${p.joins}</span></td>
+        <td style="color:var(--muted);font-size:12px;">${esc(p.last_seen)}</td>
+      </tr>`).join("");
+    el.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="color:var(--muted);font-size:12px;text-align:left;border-bottom:1px solid var(--border);">
+            <th style="padding:6px 10px;">#</th>
+            <th style="padding:6px 10px;">Игрок</th>
+            <th style="padding:6px 10px;">Заходов</th>
+            <th style="padding:6px 10px;">Последний раз</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p class="muted" style="margin-top:8px;font-size:11px;">Всего уникальных игроков: <strong>${players.length}</strong></p>`;
+  } catch (e) {
+    el.innerHTML = `<p class="muted">Ошибка: ${e.message}</p>`;
+  }
+}
+
+async function minecraftAction(action) {
+  if (!await confirmModal("Подтверждение", `Точно ${action} сервер Minecraft?`, "Да")) return;
+  setBusy(action, true);
+  try {
+    await api("/api/minecraft/action", {
+      method: "POST", 
+      body: JSON.stringify({action})
+    });
+    toast(`Команда ${action} отправлена.`, "ok");
+    setTimeout(() => refreshAll(true), 3000);
+  } catch (e) {
+    toast(`Ошибка: ${e.message}`, "bad");
+  } finally {
+    setBusy(action, false);
+  }
+}
+
+async function sendMinecraftCommand() {
+  const input = document.getElementById("rconInput");
+  const command = input.value.trim();
+  if (!command) return;
+  
+  try {
+    const res = await api("/api/minecraft/command", {
+      method: "POST",
+      body: JSON.stringify({command})
+    });
+    if (res.output) {
+      toast(`[RCON] ${res.output}`, "ok");
+    } else {
+      toast("Команда отправлена.", "ok");
+    }
+    input.value = "";
+    fetchMinecraftLogs();
+  } catch (e) {
+    toast(`Ошибка RCON: ${e.message}`, "bad");
+  }
+}
+
+async function fetchMinecraftLogs() {
+  const el = document.getElementById("mcLogs");
+  if (!el) return;
+  try {
+    const res = await api("/api/minecraft/logs");
+    el.textContent = res.text || "Логи пусты.";
+    el.scrollTop = el.scrollHeight;
+  } catch (e) {
+    el.textContent = `Ошибка загрузки логов: ${e.message}`;
+  }
+}
+
+function renderFiles() {
+  const listing = state.data.files || {path:"", items:[]};
+  const storage = state.data.storage || listing.storage || {};
+  $("pageTitle").textContent = "Files";
+  $("pageSubtitle").textContent = "Файловый менеджер внутри /data без выхода в системные папки.";
+  const current = listing.path || state.filePath || "";
+  return `
+    <div class="grid">
+      ${metric("Storage Used", pct(storage.percent_used), `${fmtSize(storage.used_bytes || storage.used)} / ${fmtSize(storage.total_bytes || storage.total)}`, Number(storage.percent_used) < 85 ? "ok" : "warning", "💾")}
+      ${metric("Free", fmtSize(storage.free_bytes || storage.free), "/data", "info", "📦")}
+      ${metric("Current Path", current || "/", "текущая папка", "info", "📁")}
+      ${metric("Items", String((listing.items || []).length), "файлы и папки", "info", "🧾")}
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h3>File Manager</h3>
+      <div class="breadcrumbs">${breadcrumbs(current)}</div>
+      <div class="toolbar">
+        <button onclick="openDataPath('files')">/data/files</button>
+        <button onclick="openDataPath('backups')">/data/backups</button>
+        <button onclick="openDataPath('screenshots')">/data/screenshots</button>
+        <button onclick="openDataPath('uploads')">/data/uploads</button>
+        <button onclick="openDataPath('media')">/data/media</button>
+      </div>
+      <div class="drop" id="drop">Перетащи один или много файлов сюда, или нажми для выбора</div>
+      <input id="fileInput" class="hidden" type="file" multiple>
+      <div class="toolbar" style="margin-top:14px"><input id="newFolderName" placeholder="Имя новой папки"><button onclick="mkdirData()">New folder</button></div>
+      ${(listing.items || []).length ? fileTable(listing.items) : emptyState("Папка пустая", "Можно загрузить файл или создать новую папку.", "📁")}
+    </div>`;
+}
+
+function breadcrumbs(path) {
+  const parts = (path || "").split("/").filter(Boolean);
+  let built = "";
+  const crumbs = [`<span class="crumb" onclick="openDataPath('')">/data</span>`];
+  for (const part of parts) {
+    built = built ? `${built}/${part}` : part;
+    crumbs.push(`<span class="crumb" onclick="openDataPath('${esc(built)}')">${esc(part)}</span>`);
+  }
+  return crumbs.join("");
+}
+
+function fileTable(items) {
+  return `<div class="table-wrap"><table><thead><tr><th>Name</th><th>Type</th><th>Size</th><th>Modified</th><th>Actions</th></tr></thead><tbody>${items.map(item => `
+    <tr>
+      <td>${item.type === "dir" ? "📁" : "📄"} ${esc(item.name)}</td>
+      <td>${esc(item.type)}</td>
+      <td>${fmtSize(item.size_bytes)}</td>
+      <td>${fmtDate(item.modified_at)}</td>
+      <td>${item.type === "dir" ? `<button class="secondary" onclick="openDataPath('${esc(item.path)}')">Open</button>` : `<button class="secondary" onclick="downloadDataFile('${esc(item.path)}')">Download</button>`} <button class="danger" onclick="deleteDataPath('${esc(item.path)}')">Delete</button></td>
+    </tr>`).join("")}</tbody></table></div>`;
+}
+
+function renderBackups() {
+  const backups = state.data.backups?.backups || [];
+  const latest = backups[0];
+  $("pageTitle").textContent = "Backups";
+  $("pageSubtitle").textContent = "Backup Center для проекта, конфига и состояния.";
+  return `
+    <div class="card" style="margin-bottom:14px">
+      <div class="row-head"><h3>Перед крупными изменениями всегда делай backup</h3><span class="chip warn">важно</span></div>
+      <p class="sub">Backup хранится в /data/backups. Секреты не показываются в UI.</p>
+    </div>
+    <div class="grid">
+      ${metric("Last Backup", latest?.name || "нет", latest ? fmtDate(latest.created_at || latest.modified_at) : "создай backup", latest ? "ok" : "warning", "🛡️")}
+      ${metric("Backups", String(backups.length), "в /data/backups", "info", "🧾")}
+      ${metric("Total Size", fmtSize(backups.reduce((s,b) => s + Number(b.size_bytes || 0), 0)), "все backup-файлы", "info", "💾")}
+      ${metric("Retention", "30 days", "оставляем последние 5", "info", "♻️")}
+    </div>
+    <div class="toolbar" style="margin-top:14px">
+      <button onclick="createBackup('project')">Backup проекта</button>
+      <button class="secondary" onclick="createBackup('config')">Backup config</button>
+      <button class="secondary" onclick="createBackup('full')">Full backup</button>
+    </div>
+    <div class="card"><h3>Список backups</h3>${backups.length ? backupTable(backups) : emptyState("Backup-файлов нет", "Нажми кнопку создания backup.", "🛡️")}</div>`;
+}
+
+function backupTable(backups) {
+  return `<div class="table-wrap"><table><thead><tr><th>Name</th><th>Size</th><th>Date</th><th>Actions</th></tr></thead><tbody>${backups.map(b => `
+    <tr><td>${esc(b.name)}</td><td>${fmtSize(b.size_bytes)}</td><td>${fmtDate(b.created_at || b.modified_at)}</td><td><button class="secondary" onclick="downloadBackup('${esc(b.name)}')">Download</button> <button class="danger" onclick="deleteBackup('${esc(b.name)}')">Delete</button></td></tr>
+  `).join("")}</tbody></table></div>`;
+}
+
+function renderLogs() {
+  $("pageTitle").textContent = "Logs";
+  $("pageSubtitle").textContent = "Server logs, bot logs и errors в terminal-like виде.";
+  const tabs = [
+    ["errors", "Errors only"],
+    ["server", "Server logs"],
+    ["bot", "Bot logs"],
+  ];
+  const text = state.logTab === "server" ? (state.data.logsServer?.text || "") :
+    state.logTab === "bot" ? (state.data.logsBot?.text || "") :
+    (state.data.logsErrors?.lines || []).join("\n");
+  return `
+    <div class="toolbar">
+      ${tabs.map(([id, label]) => `<button class="${state.logTab === id ? "" : "secondary"}" onclick="setLogTab('${id}')">${label}</button>`).join("")}
+      <button class="secondary" onclick="refreshAll(true)">Refresh</button>
+    </div>
+    <div class="card">
+      <h3>${esc(tabs.find(t => t[0] === state.logTab)?.[1] || "Logs")}</h3>
+      ${text ? `<pre class="terminal">${esc(filterLogText(text))}</pre>` : emptyState("Логов нет", "Endpoint вернул пустой ответ или функция ещё не подключена.", "📜")}
+    </div>`;
+}
+
+function filterLogText(text) {
+  const value = String(text || "");
+  const filter = localStorage.getItem("pcmanager.logFilter") || "";
+  if (!filter) return value.slice(-20000);
+  return value.split("\n").filter(line => line.toLowerCase().includes(filter.toLowerCase())).join("\n").slice(-20000);
+}
+
+function renderMaintenance() {
+  $("pageTitle").textContent = "Maintenance";
+  $("pageSubtitle").textContent = "Безопасное обслуживание сервера без произвольного shell.";
+  return `
+    <div class="grid">
+      ${metric("Local Check", "doctor.py", "server, bot, API, disk, network", "info", "🩺")}
+      ${metric("Logs cleanup", "14 days", "не трогаем active journal", "info", "🧹")}
+      ${metric("Backups cleanup", "30 days", "оставляем последние 5", "info", "♻️")}
+      ${metric("Ubuntu updates", "manual", "только список", "info", "📦")}
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h3>Maintenance Actions</h3>
+      <div class="action-grid">
+        <button class="action-tile" data-busy-key="check" onclick="runCheck()"><span>🩺</span>Проверить всё</button>
+        <button class="action-tile secondary" data-busy-key="cleanup-logs" onclick="maintenanceAction('cleanup-logs', true)"><span>🧹</span>Очистить старые логи</button>
+        <button class="action-tile secondary" data-busy-key="cleanup-backups" onclick="maintenanceAction('cleanup-backups', true)"><span>♻️</span>Очистить старые backups</button>
+        <button class="action-tile secondary" data-busy-key="check-updates" onclick="maintenanceAction('check-updates', false)"><span>📦</span>Проверить обновления Ubuntu</button>
+        <button class="action-tile danger" data-busy-key="restart-backend" onclick="maintenanceAction('restart-backend', true)"><span>🔁</span>Перезапустить backend</button>
+        <button class="action-tile warning" data-busy-key="restart-bot" onclick="maintenanceAction('restart-bot', true)"><span>🤖</span>Перезапустить bot</button>
+      </div>
+    </div>`;
+}
+
+function renderSettings() {
+  const h = state.data.home || {};
+  const f = state.data.features || {};
+  const tailscale = (state.data.network?.local_ips || []).find(ip => ip.startsWith("100."));
+  $("pageTitle").textContent = "Settings";
+  $("pageSubtitle").textContent = "Настройки подключения без показа секретов.";
+  return `
+    <div class="grid">
+      ${metric("Telegram Bot", h.services?.bot || h.server?.telegram_bot || "—", "status only", h.services?.bot || h.server?.telegram_bot, "🤖")}
+      ${metric("Access Key", state.token ? "configured" : "not set", "значение скрыто", state.token ? "ok" : "warning", "🔐")}
+      ${metric("Data Path", "/data", "files, backups, media", "info", "📁")}
+      ${metric("Reports", "/var/lib/pcmanager/reports", "local doctor", "info", "🧾")}
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h3>URLs для телефона и PWA</h3>
+      <div class="list">
+        ${copyRow("Server Base URL", serverBaseUrl())}
+        ${copyRow("WebSocket URL", wsUrl())}
+        ${copyRow("Ping URL", `${serverBaseUrl()}api/ping`)}
+        ${tailscale ? copyRow("Tailscale URL", `http://${tailscale}:8765/`) : row("Tailscale URL", "Tailscale IP не найден в текущем ответе сервера.")}
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px"><h3>Функции</h3><div class="list">
+      ${row("Server screenshot", f.enable_server_screenshot ? "Включено" : "Выключено")}
+      ${row("Server webcam", f.enable_server_webcam ? "Включено" : "Выключено")}
+      ${row("Agent screenshot", f.enable_agent_screenshot ? "Включено" : "Выключено")}
+    </div></div>`;
+}
+
+function formatChatMessage(content) {
+  if (content === "typing_indicator") return "";
+  
+  // 1. Escaping the content first for HTML security
+  let html = esc(content);
+  
+  // 2. Parse [SCREENSHOT: file_id] tags
+  const screenshotRegex = /\[SCREENSHOT:\s*(\w+)\]/gi;
+  html = html.replace(screenshotRegex, (match, fileId) => {
+    const imageUrl = `${state.base}/api/files/${fileId}/download?token=${encodeURIComponent(state.token)}`;
+    return `
+      <div style="margin-top: 8px;">
+        <img src="${imageUrl}" style="max-width: 100%; max-height: 350px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.25); cursor: pointer; display: block; border: 1px solid rgba(255,255,255,0.1); transition: transform 0.2s;" class="chat-img" onclick="window.open('${imageUrl}', '_blank')">
+      </div>`;
+  });
+  
+  // 3. Format markdown-style bold: **text**
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  
+  // 4. Format markdown-style italic: *text*
+  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+  
+  // 5. Format inline code: `code`
+  html = html.replace(/`(.*?)`/g, '<code style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 6px; font-family: SFMono-Regular, Consolas, Courier, monospace; font-size: 0.95em; color: var(--accent);">$1</code>');
+  
+  // 6. Convert newlines to breaks
+  html = html.replace(/\n/g, '<br>');
+  
+  return html;
+}
+
+
+
+function copyRow(title, value) {
+  return row(esc(title), `<code>${esc(value)}</code>`, `<button class="secondary" onclick="copyText('${esc(value)}')">Copy</button>`);
+}
+
+function render() {
+  renderNav();
+  const views = {dashboard: renderDashboard, network: renderNetwork, agent: renderAgent, minecraft: renderMinecraft, files: renderFiles, backups: renderBackups, logs: renderLogs, maintenance: renderMaintenance, settings: renderSettings};
+  $("content").innerHTML = (views[state.page] || renderDashboard)();
+  bindDynamic();
+  if (state.page === "minecraft") {
+    setTimeout(fetchMinecraftLogs, 300);
+    setTimeout(fetchPlayerStats, 400);
+  }
+}
+
+function bindDynamic() {
+  const drop = $("drop");
+  const input = $("fileInput");
+  if (drop && input) {
+    drop.onclick = () => input.click();
+    input.onchange = () => uploadDataFiles(input.files);
+    drop.ondragover = event => { event.preventDefault(); drop.style.borderColor = "var(--green)"; };
+    drop.ondragleave = () => { drop.style.borderColor = "rgba(56, 189, 248, .55)"; };
+    drop.ondrop = event => { event.preventDefault(); drop.style.borderColor = "rgba(56, 189, 248, .55)"; uploadDataFiles(event.dataTransfer.files); };
+  }
+}
+
+function goPage(page) {
+  state.page = page;
+  persistUiState();
+  render();
+}
+
+async function runCheck() {
+  setBusy("check", true);
+  try {
+    await api("/api/maintenance/check-all", {method: "POST"});
+    toast("Проверка запущена и отчёт сохранён.", "ok");
+    await refreshAll();
+  } catch (error) {
+    toast(`Ошибка проверки: ${error.message}`, "bad");
+  } finally { setBusy("check", false); }
+}
+
+async function maintenanceAction(action, dangerous) {
+  if (dangerous) {
+    const ok = await confirmModal("Подтверждение", `Выполнить действие: ${action}?`, "Выполнить");
+    if (!ok) return;
+  }
+  setBusy(action, true);
+  try {
+    const result = await api(`/api/maintenance/${action}`, {method: "POST"});
+    const extra = result.updates ? `\nОбновлений: ${result.updates.length}` : "";
+    toast(`Готово: ${action}${extra}`, "ok");
+    setTimeout(() => refreshAll().catch(() => null), action.includes("restart") ? 5000 : 600);
+  } catch (error) {
+    toast(`Ошибка ${action}: ${error.message}`, "bad");
+  } finally { setBusy(action, false); }
+}
+
+async function createBackup(kind) {
+  setBusy("backup", true);
+  try {
+    await api(`/api/backups/create?kind=${encodeURIComponent(kind)}`, {method: "POST"});
+    toast("Backup создан.", "ok");
+    await refreshAll();
+  } catch (error) {
+    toast(`Ошибка backup: ${error.message}`, "bad");
+  } finally { setBusy("backup", false); }
+}
+
+async function scanLan() {
+  setBusy("scan", true);
+  try {
+    await api("/api/network/scan", {method: "POST"});
+    toast("LAN scan завершён.", "ok");
+    await refreshAll();
+  } catch (error) {
+    toast(`Ошибка scan: ${error.message}`, "bad");
+  } finally { setBusy("scan", false); }
+}
+
+async function markDeviceKnown(id) {
+  try {
+    await api(`/api/network/devices/${encodeURIComponent(id)}/mark-known`, {method: "POST"});
+    toast("Устройство отмечено как known.", "ok");
+    await refreshAll();
+  } catch (error) { toast(`Ошибка: ${error.message}`, "bad"); }
+}
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+function setPressedButtonBusy(button, value) {
+  if (!button || button.tagName !== "BUTTON") return;
+  button.disabled = value;
+  button.dataset.originalText ||= button.textContent;
+  button.textContent = value ? "Выполняется..." : button.dataset.originalText;
+}
+
+function taskIdFromResponse(response) {
+  return response?.task_id || response?.id || response?.task?.task_id || response?.task?.id || "";
+}
+
+async function waitForTask(taskId, timeoutMs = 14000) {
+  if (!taskId) {
+    await sleep(2200);
+    return null;
+  }
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    await sleep(900);
+    const tasks = await safe("/api/tasks", []);
+    const items = Array.isArray(tasks) ? tasks : (tasks.items || tasks.tasks || []);
+    const task = items.find(item => item.task_id === taskId || item.id === taskId);
+    if (task && ["success", "done", "failed", "timeout", "cancelled"].includes(String(task.status || "").toLowerCase())) {
+      return task;
+    }
+  }
+  return null;
+}
+
+async function sendAgentCommand(path, okMessage, options = {}) {
+  const button = document.activeElement;
+  setPressedButtonBusy(button, true);
+  try {
+    const response = await api(path, {method: "POST"});
+    const taskId = taskIdFromResponse(response);
+    toast(okMessage || "Команда отправлена агенту.", "ok");
+    const task = await waitForTask(taskId, options.timeoutMs || 14000);
+    if (task?.status && !["success", "done"].includes(String(task.status).toLowerCase())) {
+      toast(`Команда завершилась: ${task.status}${task.error ? ` (${task.error})` : ""}`, "bad");
+    } else if (task?.status) {
+      toast("Команда выполнена агентом.", "ok");
+    }
+    await refreshAll();
+    return response;
+  } finally {
+    setTimeout(() => setPressedButtonBusy(button, false), options.cooldownMs || 2200);
+  }
+}
+
+async function agentTask(id, action) {
+  try {
+    await sendAgentCommand(`/api/agents/${encodeURIComponent(id)}/${action}`, "Задача отправлена агенту.");
+    toast("Задача отправлена агенту.", "ok");
+    await refreshAll();
+  } catch (error) { toast(`Ошибка агента: ${error.message}`, "bad"); }
+}
+
+async function restartAllowedApp(id) {
+  const app = prompt("Имя приложения из allowlist, например explorer.exe");
+  if (!app) return;
+  try {
+    await sendAgentCommand(`/api/agents/${encodeURIComponent(id)}/restart-app?app_name=${encodeURIComponent(app)}`, "Команда restart allowed app отправлена.");
+    toast("Команда restart allowed app отправлена.", "ok");
+  } catch (error) { toast(`Ошибка restart app: ${error.message}`, "bad"); }
+}
+
+async function agentPressKey(id, key) {
+  try {
+    await sendAgentCommand(`/api/agents/${encodeURIComponent(id)}/input/key?key=${encodeURIComponent(key)}&duration_seconds=2`, `Key ${key.toUpperCase()} sent.`);
+    toast(`Key ${key.toUpperCase()} sent.`, "ok");
+    await refreshAll();
+  } catch (error) { toast(`Ошибка key: ${error.message}`, "bad"); }
+}
+
+async function agentClickPreset(id, preset) {
+  try {
+    await sendAgentCommand(`/api/agents/${encodeURIComponent(id)}/input/click?preset=${encodeURIComponent(preset)}`, `Click preset ${preset} sent.`);
+    toast(`Click preset ${preset} sent.`, "ok");
+    await refreshAll();
+  } catch (error) { toast(`Ошибка click: ${error.message}`, "bad"); }
+}
+
+async function agentReleaseKeys(id) {
+  try {
+    await sendAgentCommand(`/api/agents/${encodeURIComponent(id)}/input/release-keys`, "Release keys command sent.");
+    toast("Release keys command sent.", "ok");
+    await refreshAll();
+  } catch (error) { toast(`Ошибка release keys: ${error.message}`, "bad"); }
+}
+
+async function agentLaunch(id) {
+  try {
+    await sendAgentCommand(`/api/agents/${encodeURIComponent(id)}/launch?app_key=majestic_launcher`, "Launch command sent.");
+    toast("Launch command sent.", "ok");
+    await refreshAll();
+  } catch (error) { toast(`Ошибка launch: ${error.message}`, "bad"); }
+}
+
+async function agentVolume(id, direction) {
+  try {
+    await sendAgentCommand(`/api/agents/${encodeURIComponent(id)}/volume/${encodeURIComponent(direction)}`, "Volume command sent.");
+    toast("Volume command sent.", "ok");
+    await refreshAll();
+  } catch (error) { toast(`Ошибка volume: ${error.message}`, "bad"); }
+}
+
+async function agentDesktop(id, direction) {
+  try {
+    await sendAgentCommand(`/api/agents/${encodeURIComponent(id)}/desktop/${encodeURIComponent(direction)}`, `Desktop ${direction} command sent.`, {timeoutMs: 18000, cooldownMs: 2500});
+    toast(`Desktop ${direction} command sent.`, "ok");
+    await refreshAll();
+  } catch (error) { toast(`Ошибка desktop: ${error.message}`, "bad"); }
+}
+
+async function agentAntiAfk(id, action) {
+  try {
+    let url = `/api/agents/${encodeURIComponent(id)}/anti-afk/${action}`;
+    if (action === "start") {
+      const min = prompt("Anti-AFK min minutes", "10") || "10";
+      const max = prompt("Anti-AFK max minutes", "20") || "20";
+      url += `?min_minutes=${encodeURIComponent(min)}&max_minutes=${encodeURIComponent(max)}`;
+    }
+    await sendAgentCommand(url, `Anti-AFK ${action} command sent.`);
+    toast(`Anti-AFK ${action} command sent.`, "ok");
+    await refreshAll();
+  } catch (error) { toast(`Anti-AFK error: ${error.message}`, "bad"); }
+}
+
+async function agentAutoScreen(id, action) {
+  try {
+    let url = `/api/agents/${encodeURIComponent(id)}/auto-screen/${action}`;
+    if (action === "start") {
+      const interval = prompt("Auto-screen interval seconds (min 60)", "300") || "300";
+      url += `?interval_seconds=${encodeURIComponent(interval)}`;
+    }
+    await sendAgentCommand(url, `Auto-screen ${action} command sent.`);
+    toast(`Auto-screen ${action} command sent.`, "ok");
+    await refreshAll();
+  } catch (error) { toast(`Auto-screen error: ${error.message}`, "bad"); }
+}
+
+function openDataPath(path) {
+  state.filePath = path || "";
+  persistUiState();
+  refreshAll(true).catch(error => toast(`Ошибка папки: ${error.message}`, "bad"));
+}
+
+async function uploadDataFiles(files) {
+  const list = Array.from(files || []).filter(Boolean);
+  if (!list.length) return;
+  const form = new FormData();
+  for (const file of list) {
+  form.append("upload", file);
+  }
+  try {
+    toast(`Загрузка файлов: ${list.length}...`, "ok");
+    await api(`/api/files/upload?path=${encodeURIComponent(state.filePath || "uploads")}`, {method: "POST", body: form});
+    toast(list.length === 1 ? "Файл загружен." : `Файлы загружены: ${list.length}`, "ok");
+    await refreshAll();
+  } catch (error) { toast(`Ошибка upload: ${error.message}`, "bad"); }
+}
+
+async function mkdirData() {
+  const name = $("newFolderName")?.value.trim();
+  if (!name) return;
+  try {
+    await api(`/api/files/mkdir?path=${encodeURIComponent(state.filePath ? `${state.filePath}/${name}` : name)}`, {method: "POST"});
+    toast("Папка создана.", "ok");
+    await refreshAll();
+  } catch (error) { toast(`Ошибка папки: ${error.message}`, "bad"); }
+}
+
+async function deleteDataPath(path) {
+  if (!await confirmModal("Удалить файл?", `Удалить ${path}?`, "Удалить")) return;
+  try {
+    await api(`/api/files/delete?path=${encodeURIComponent(path)}&confirm=DELETE`, {method: "POST"});
+    toast("Удалено.", "ok");
+    await refreshAll();
+  } catch (error) { toast(`Ошибка удаления: ${error.message}`, "bad"); }
+}
+
+async function downloadDataFile(path) {
+  try {
+    const blob = await api(`/api/files/download?path=${encodeURIComponent(path)}`);
+    saveBlob(blob, path.split("/").pop() || "download");
+  } catch (error) { toast(`Ошибка download: ${error.message}`, "bad"); }
+}
+
+async function downloadBackup(name) {
+  try {
+    const blob = await api(`/api/backups/download/${encodeURIComponent(name)}`);
+    saveBlob(blob, name);
+  } catch (error) { toast(`Ошибка download backup: ${error.message}`, "bad"); }
+}
+
+async function deleteBackup(name) {
+  if (!await confirmModal("Удалить backup?", `Удалить ${name}?`, "Удалить")) return;
+  try {
+    await api(`/api/backups/delete/${encodeURIComponent(name)}?confirm=DELETE`, {method: "POST"});
+    toast("Backup удалён.", "ok");
+    await refreshAll();
+  } catch (error) { toast(`Ошибка удаления backup: ${error.message}`, "bad"); }
+}
+
+function saveBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+function setLogTab(tab) {
+  state.logTab = tab;
+  render();
+}
+
+function serverBaseUrl() {
+  const server = state.data.serverInfo || {};
+  const home = state.data.home || {};
+  return (server.base_url || home.server?.base_url || `${location.protocol}//${location.host}/`).replace(/\/?$/, "/");
+}
+
+function wsUrl() {
+  const server = state.data.serverInfo || {};
+  return server.websocket_url || serverBaseUrl().replace("https://", "wss://").replace("http://", "ws://") + "ws/status";
+}
+
+async function copyText(text) {
+  await navigator.clipboard.writeText(text);
+  toast("Скопировано.", "ok");
+}
+
+$("loginForm").onsubmit = async event => {
+  event.preventDefault();
+  try { await login($("adminToken").value.trim()); }
+  catch (error) { toast(`Ошибка входа: ${error.message}`, "bad"); }
+};
+
+$("pingBtn").onclick = async () => {
+  try {
+    const data = await fetch(state.base + "/api/ping").then(r => r.json());
+    toast(`Сервер отвечает: ${data.app} ${data.version}`, "ok");
+  } catch (error) { toast(`Сервер не отвечает: ${error.message}`, "bad"); }
+};
+
+$("refreshBtn").onclick = () => refreshAll(true).catch(error => toast(`Ошибка refresh: ${error.message}`, "bad"));
+$("logoutBtn").onclick = () => { localStorage.removeItem("pcmanager.jwt"); location.reload(); };
+
+window.addEventListener("hashchange", () => {
+  const page = location.hash.replace("#", "");
+  if (pages.some(([id]) => id === page)) {
+    state.page = page;
+    persistUiState();
+    render();
+  }
+});
+
+if (state.token) {
+  $("loginView").classList.add("hidden");
+  $("appView").classList.remove("hidden");
+  startAutoRefresh();
+  refreshAll(true).catch(error => {
+    $("connectionChip").textContent = "offline";
+    $("connectionChip").className = "chip bad";
+    toast(`Не удалось загрузить панель: ${error.message}`, "bad");
+  });
+}
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/service-worker.js").catch(() => null);
+}
+</script>
+</body>
+</html>

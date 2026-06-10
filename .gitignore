@@ -1,0 +1,57 @@
+# Compiled Python files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Database files
+*.db
+*.sqlite3
+
+# Secrets and environment files
+.env
+*.env
+pcmanager.env
+config.json
+config.private.json
+
+# IDE configurations
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Android build outputs and caches
+.gradle/
+build/
+app/build/
+*.apk
+*.ap_
+*.idsig
+local.properties
+.navigation/
+
+# Logs and temporary files
+logs/
+*.log
+tmp/
+temp/
+scratch/
+.gemini/
+
+# Compiled agents, archives, and tools
+dist/
+releases/
+*.exe
+*.tar.gz
+*.zip
+*.jar
+.codex-tools/

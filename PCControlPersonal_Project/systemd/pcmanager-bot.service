@@ -1,0 +1,22 @@
+[Unit]
+Description=PC Manager Telegram bot
+Wants=network-online.target pcmanager-server.service
+After=network-online.target pcmanager-server.service
+
+[Service]
+Type=simple
+User=pcmanager
+Group=pcmanager
+WorkingDirectory=/opt/pcmanager
+EnvironmentFile=/etc/pcmanager/pcmanager.env
+Environment=PCMANAGER_ENV_FILE=/etc/pcmanager/pcmanager.env
+ExecStart=/opt/pcmanager/venv/bin/python -m backend.app.bot.runner
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/var/lib/pcmanager /var/log/pcmanager /etc/pcmanager /data
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,5 @@
+// PC Manager Agent - Resource file
+#include <windows.h>
+
+// Main application icon (embedded in EXE)
+100 ICON "agent.ico"

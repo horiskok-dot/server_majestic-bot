@@ -1,0 +1,13 @@
+[Unit]
+Description=PC Manager metrics collector
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=pcmanager
+Group=pcmanager
+WorkingDirectory=/opt/pcmanager
+EnvironmentFile=/etc/pcmanager/pcmanager.env
+Environment=PCMANAGER_ENV_FILE=/etc/pcmanager/pcmanager.env
+ExecStart=/bin/bash /opt/pcmanager/scripts/collect_metrics.sh

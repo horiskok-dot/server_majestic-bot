@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  
+  <!-- Main URL -->
+  <url>
+    <loc>https://pcmanager.online/</loc>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://pcmanager.online/ru"/>
+    <xhtml:link rel="alternate" hreflang="uk" href="https://pcmanager.online/ua"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pcmanager.online/"/>
+    <lastmod>2026-05-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  
+  <!-- Russian URL -->
+  <url>
+    <loc>https://pcmanager.online/ru</loc>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://pcmanager.online/ru"/>
+    <xhtml:link rel="alternate" hreflang="uk" href="https://pcmanager.online/ua"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pcmanager.online/"/>
+    <lastmod>2026-05-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- Ukrainian URL -->
+  <url>
+    <loc>https://pcmanager.online/ua</loc>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://pcmanager.online/ru"/>
+    <xhtml:link rel="alternate" hreflang="uk" href="https://pcmanager.online/ua"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pcmanager.online/"/>
+    <lastmod>2026-05-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+</urlset>

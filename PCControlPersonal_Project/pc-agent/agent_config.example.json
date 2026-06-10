@@ -1,0 +1,93 @@
+{
+  "agent_id": "gaming-laptop",
+  "agent_name": "Gaming Laptop",
+  "access_key": "CHANGE_ME",
+  "heartbeat_interval_seconds": 10,
+  "task_poll_interval_seconds": 3,
+  "screenshot_quality": 80,
+  "screenshot_retention_days": 3,
+  "screenshot_keep_last": 80,
+  "anti_afk_min_minutes": 10,
+  "anti_afk_max_minutes": 20,
+  "auto_screen_interval_seconds": 300,
+  "logs_dir": "logs",
+  "allowed_apps": [
+    "explorer.exe",
+    "chrome.exe",
+    "notepad.exe",
+    "Discord.exe",
+    "Telegram.exe"
+  ],
+  "allowed_input_keys": [
+    "w",
+    "a",
+    "s",
+    "d",
+    "z",
+    "e",
+    "i",
+    "esc",
+    "space",
+    "enter",
+    "tab",
+    "shift",
+    "ctrl"
+  ],
+  "click_presets": {
+    "play": [
+      997,
+      499
+    ],
+    "char1": [
+      597,
+      996
+    ],
+    "char2": [
+      910,
+      966
+    ],
+    "house": [
+      908,
+      970
+    ],
+    "spawn": [
+      810,
+      973
+    ],
+    "spawn2": [
+      947,
+      1013
+    ]
+  },
+  "allowed_launchers": {
+    "majestic_launcher": "C:\\Users\\horis\\AppData\\Local\\MajesticLauncher\\Majestic Launcher.exe"
+  },
+  "enabled_tasks": [
+    "ping",
+    "system_info",
+    "screenshot",
+    "process_list",
+    "disk_info",
+    "temperature",
+    "agent_logs",
+    "restart_allowed_app",
+    "press_key",
+    "click_preset",
+    "release_keys",
+    "launch_allowed_app",
+    "open_url",
+    "volume_up",
+    "volume_down",
+    "game_status",
+    "anti_afk_start",
+    "anti_afk_stop",
+    "auto_screen_start",
+    "auto_screen_stop",
+    "automation_status",
+    "cleanup_screenshots",
+    "desktop_new",
+    "desktop_close",
+    "desktop_left",
+    "desktop_right"
+  ]
+}

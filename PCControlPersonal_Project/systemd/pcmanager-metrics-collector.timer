@@ -1,0 +1,12 @@
+[Unit]
+Description=Run PC Manager metrics collector every 5 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Persistent=true
+Unit=pcmanager-metrics-collector.service
+
+[Install]
+WantedBy=timers.target
+

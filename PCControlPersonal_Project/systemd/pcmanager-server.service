@@ -1,0 +1,22 @@
+[Unit]
+Description=PC Manager FastAPI server
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=pcmanager
+Group=pcmanager
+WorkingDirectory=/opt/pcmanager
+EnvironmentFile=/etc/pcmanager/pcmanager.env
+Environment=PCMANAGER_ENV_FILE=/etc/pcmanager/pcmanager.env
+ExecStart=/opt/pcmanager/venv/bin/python -m uvicorn backend.app.main:app --host ${SERVER_HOST} --port ${SERVER_PORT}
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/var/lib/pcmanager /var/log/pcmanager /etc/pcmanager /data
+
+[Install]
+WantedBy=multi-user.target

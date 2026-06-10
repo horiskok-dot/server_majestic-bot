@@ -1,0 +1,10 @@
+[Unit]
+Description=Run PC Manager local diagnostics at 10:00 and 18:00
+
+[Timer]
+OnCalendar=*-*-* 10:00:00
+OnCalendar=*-*-* 18:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

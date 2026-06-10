@@ -1,0 +1,14 @@
+[Unit]
+Description=PC Manager local diagnostics check
+Wants=network-online.target
+After=network-online.target pcmanager-server.service pcmanager-bot.service
+
+[Service]
+Type=oneshot
+User=pc
+WorkingDirectory=/home/pc/PCControlPersonal_Project
+Environment=PCMANAGER_ENV_FILE=/etc/pcmanager/pcmanager.env
+ExecStart=/bin/bash /home/pc/PCControlPersonal_Project/scripts/local_check.sh
+
+[Install]
+WantedBy=multi-user.target

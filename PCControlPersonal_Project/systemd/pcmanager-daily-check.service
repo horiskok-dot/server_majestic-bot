@@ -1,0 +1,16 @@
+[Unit]
+Description=PC Manager daily diagnostics
+Wants=network-online.target
+After=network-online.target pcmanager-server.service
+
+[Service]
+Type=oneshot
+User=pc
+Group=pc
+WorkingDirectory=/home/pc/PCControlPersonal_Project
+ExecStart=/bin/bash /home/pc/PCControlPersonal_Project/scripts/server_daily_self_check.sh
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

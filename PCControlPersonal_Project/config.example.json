@@ -1,0 +1,19 @@
+{
+  "app_name": "PC Control Personal Server",
+  "local_only": false,
+  "enable_screenshot": false,
+  "enable_camera": false,
+  "enable_video_recording": false,
+  "enable_process_kill": false,
+  "enable_server_screenshot": false,
+  "enable_server_webcam": false,
+  "enable_server_webcam_video": false,
+  "max_server_webcam_video_seconds": 10,
+  "allow_dangerous_commands": false,
+  "allowed_script_names": "cleanup_temp,collect_diagnostics",
+  "task_timeout_seconds": 300,
+  "safe_retry_count": 2,
+  "max_upload_mb": 200,
+  "max_video_seconds": 30,
+  "api_rate_limit_per_minute": 120
+}

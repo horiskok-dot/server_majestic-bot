@@ -1,0 +1,46 @@
+﻿PC Manager Daily Server Check
+Generated: 2026-04-26 19:45:16
+Target: pc@192.168.0.194
+Project: /home/pc/PCControlPersonal_Project
+
+SUMMARY
+OVERALL: ERROR
+SERVER: ERROR
+API: ERROR
+BOT: ERROR
+DISK: OK (0%)
+RAM: OK (0%)
+LOG ERRORS: 0
+
+SUGGESTIONS
+- Check SSH access and pcmanager-server: systemctl status pcmanager-server
+- Check Telegram bot: systemctl status pcmanager-bot and journalctl -u pcmanager-bot -n 100
+- API does not answer /api/ping. Check pcmanager-server and port 8765.
+- Configure an SSH key for the daily task. Password is intentionally not stored.
+
+REMOTE STATUS
+SSH_EXIT_CODE: 1
+
+HOSTNAME -I
+
+
+UPTIME
+
+
+DF -H
+
+
+FREE -H
+
+
+API PING
+
+
+LOG MATCHES
+
+
+SERVER LOG LAST 80
+
+
+BOT LOG LAST 80
+

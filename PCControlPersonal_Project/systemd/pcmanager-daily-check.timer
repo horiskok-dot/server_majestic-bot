@@ -1,0 +1,10 @@
+[Unit]
+Description=Run PC Manager daily diagnostics at 10:00
+
+[Timer]
+OnCalendar=*-*-* 10:00:00
+Persistent=true
+Unit=pcmanager-daily-check.service
+
+[Install]
+WantedBy=timers.target

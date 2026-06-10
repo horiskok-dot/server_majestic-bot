@@ -1,0 +1,6 @@
+@echo off
+setlocal
+cd /d "%~dp0"
+if not exist backend\.env copy .env.example backend\.env
+python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8765
+pause
