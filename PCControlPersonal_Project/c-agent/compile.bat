@@ -36,7 +36,7 @@ echo Compiling resources (icon)...
 rc.exe /nologo resource.rc
 
 echo Compiling Native C++ PCManager Agent...
-cl.exe /O2 /EHsc /DUNICODE /D_UNICODE main.cpp win_utils.cpp http_client.cpp resource.res /link /OUT:PCManager_Agent.exe /SUBSYSTEM:WINDOWS shell32.lib advapi32.lib gdi32.lib gdiplus.lib psapi.lib ole32.lib user32.lib
+cl.exe /O2 /EHsc /DUNICODE /D_UNICODE main.cpp win_utils.cpp http_client.cpp gui.cpp websocket_client.cpp resource.res /link /OUT:PCManager_Agent.exe /SUBSYSTEM:WINDOWS shell32.lib advapi32.lib gdi32.lib gdiplus.lib psapi.lib ole32.lib user32.lib
 
 if %errorlevel% neq 0 (
     echo [ERROR] Compilation failed!

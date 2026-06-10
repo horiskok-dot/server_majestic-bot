@@ -8,9 +8,12 @@
 #include <mutex>
 #include <chrono>
 #include <shlobj.h>
+#include <dshow.h>
 #include "json.hpp"
 #include "http_client.h"
 #include "win_utils.h"
+#include "gui.h"
+#include "websocket_client.h"
 
 using json = nlohmann::json;
 
@@ -49,6 +52,9 @@ std::chrono::steady_clock::time_point g_timer_end;
 
 NOTIFYICONDATAA g_nid = { 0 };
 HWND g_hWnd = NULL;
+AgentGUI* g_gui = nullptr;
+WebSocketClient* g_ws = nullptr;
+std::mutex g_ws_mutex;
 
 static std::wstring get_exe_dir() {
     wchar_t path[MAX_PATH];
@@ -174,7 +180,8 @@ static json heartbeat_payload() {
     payload["current_task"] = g_current_task;
     payload["system_info"] = WinUtils::get_system_info();
     payload["disk_info"] = WinUtils::get_disk_info();
-    payload["network_info"] = json::object();
+    payload["network_info"] = WinUtils::get_network_info();
+    payload["battery_info"] = WinUtils::get_battery_info();
     
     // Count running processes
     json procs = WinUtils::get_process_list();
@@ -201,8 +208,36 @@ static void heartbeat_loop() {
         while (g_running) {
             try {
                 json payload = heartbeat_payload();
-                std::string path = "/api/agents/" + AGENT_ID + "/heartbeat";
-                client.request("POST", path, payload.dump());
+                bool activated = (AGENT_ID.find("pc-") == 0 && ACCESS_KEY.length() > 20);
+                std::string path = activated ? "/api/agents/heartbeat" : "/api/agents/" + AGENT_ID + "/heartbeat";
+                HttpResponse resp = client.request("POST", path, payload.dump());
+                if (resp.status_code != 200) {
+                    log_message("Heartbeat response: " + std::to_string(resp.status_code) + " - " + resp.body.substr(0, 120));
+                }
+
+                // Update GUI with latest stats
+                if (g_gui) {
+                    json& si = payload["system_info"];
+                    json& di = payload["disk_info"];
+                    json& bi = payload["battery_info"];
+                    json& ni = payload["network_info"];
+
+                    std::string cpu = si.contains("cpu_percent") ? std::to_string((int)si["cpu_percent"]) : "0";
+                    std::string ram = si.contains("ram_percent") ? std::to_string((int)si["ram_percent"]) : "0";
+                    std::string disk = "0";
+                    if (di.contains("drives") && !di["drives"].empty()) {
+                        disk = std::to_string((int)di["drives"][0]["percent"]);
+                    } else if (di.contains("percent")) {
+                        disk = std::to_string((int)di["percent"]);
+                    }
+                    std::string batt = bi.contains("percent") ? std::to_string((int)bi["percent"]) + "%" : "N/A";
+                    if (bi.contains("charging") && bi["charging"] == true) batt += " (charging)";
+                    std::string net = ni.contains("ip_address") ? ni["ip_address"].get<std::string>() : "N/A";
+                    std::string uptime = WinUtils::get_system_uptime_str();
+
+                    g_gui->update_stats(cpu, ram, disk, batt, net, uptime);
+                    g_gui->update_status("Online", "");
+                }
             } catch (const std::exception& e) {
                 log_message(std::string("Exception in heartbeat_loop iteration: ") + e.what());
             } catch (...) {
@@ -228,7 +263,7 @@ static json capture_and_upload_screenshot(HttpClient& client) {
     json result;
     
     if (WinUtils::take_screenshot(temp_file, 80)) {
-        std::string upload_path = "/api/agents/files/upload?public_type=agent_screenshot";
+        std::string upload_path = "/api/agents/" + AGENT_ID + "/screenshot/upload";
         HttpResponse response = client.upload_file(upload_path, temp_file, "agent_screenshot", "image/jpeg");
         DeleteFileW(temp_file.c_str());
         
@@ -309,6 +344,9 @@ static json execute_task(const std::string& action, const json& payload, HttpCli
         WinUtils::cancel_shutdown();
         return { {"message", "shutdown timer cancelled"} };
     }
+    if (action == "take_screenshot" || action == "screenshot") {
+        return capture_and_upload_screenshot(client);
+    }
     if (action == "press_key") {
         std::string key = payload.contains("key") ? payload["key"].get<std::string>() : "";
         int duration = payload.contains("duration_seconds") ? (int)(payload["duration_seconds"].get<double>() * 1000.0) : 100;
@@ -325,8 +363,37 @@ static json execute_task(const std::string& action, const json& payload, HttpCli
     }
     if (action == "launch_allowed_app") {
         std::string app = payload.contains("app_key") ? payload["app_key"].get<std::string>() : "";
-        // Open allowed launcher or path
         return { {"message", "app launched"} };
+    }
+    if (action == "shutdown_now") {
+        WinUtils::trigger_shutdown(1);
+        return { {"message", "shutdown initiated"} };
+    }
+    if (action == "shutdown_abort") {
+        WinUtils::cancel_shutdown();
+        return { {"message", "shutdown cancelled"} };
+    }
+    if (action == "restart") {
+        WinUtils::trigger_restart(30);
+        return { {"message", "restart in 30s"} };
+    }
+    if (action == "automation_status") {
+        json aut;
+        aut["anti_afk"] = { {"running", g_anti_afk_active.load()} };
+        aut["auto_screen"] = { {"running", g_auto_screen_active.load()} };
+        return aut;
+    }
+    if (action == "game_status") {
+        bool steam = WinUtils::is_steam_running();
+        return { {"steam_running", steam} };
+    }
+    if (action == "open_url") {
+        std::string url = payload.contains("url") ? payload["url"].get<std::string>() : "";
+        if (!url.empty()) {
+            ShellExecuteA(NULL, "open", url.c_str(), NULL, NULL, SW_SHOWNORMAL);
+            return { {"message", "url opened"} };
+        }
+        throw std::runtime_error("no url provided");
     }
     
     throw std::runtime_error("unsupported action in C++ agent: " + action);
@@ -336,7 +403,7 @@ static void task_loop() {
     try {
         log_message("task_loop thread started");
         HttpClient client(SERVER_BASE_URL, ACCESS_KEY, AGENT_ID);
-        bool is_activated = (AGENT_ID.rfind("pc-", 0) == 0 && ACCESS_KEY.length() > 20);
+        bool is_activated = (AGENT_ID.find("pc-") == 0 && ACCESS_KEY.length() > 20);
         std::string poll_path = is_activated ? "/api/agents/tasks/next" : "/api/agents/" + AGENT_ID + "/tasks/next";
 
         while (g_running) {
@@ -356,12 +423,14 @@ static void task_loop() {
                             g_last_error = "";
                         }
 
-                        // Report status RUNNING
-                        client.request("POST", "/api/tasks/" + task_id + "/status", "{\"status\": \"running\"}");
-
                         std::string status = "success";
                         std::string error_msg = "";
                         json result;
+
+                        // Post "running" status
+                        try {
+                            client.request("POST", "/api/tasks/" + task_id + "/status", "{\"status\":\"running\"}");
+                        } catch (...) {}
 
                         try {
                             result = execute_task(action, payload, client);
@@ -370,12 +439,15 @@ static void task_loop() {
                             error_msg = e.what();
                         }
 
-                        // Report result
+                        // Report result with fallback
                         json result_payload;
                         result_payload["status"] = status;
                         result_payload["result"] = result.dump();
                         result_payload["error"] = error_msg;
-                        client.request("POST", "/api/tasks/" + task_id + "/result", result_payload.dump());
+                        HttpResponse result_resp = client.request("POST", "/api/tasks/" + task_id + "/result", result_payload.dump());
+                        if (result_resp.status_code != 200) {
+                            client.request("POST", "/api/agents/tasks/" + task_id + "/result", result_payload.dump());
+                        }
 
                         {
                             std::lock_guard<std::mutex> lock(g_state_mutex);
@@ -429,21 +501,85 @@ static void auto_screen_loop() {
     }
 }
 
-// Show status popup window
+// Show/hide main window
 static void show_status_window() {
-    std::string agent_info;
-    {
-        std::lock_guard<std::mutex> lock(g_state_mutex);
-        agent_info = "Agent ID: " + AGENT_ID + "\n"
-                   + "Server:   " + SERVER_BASE_URL + "\n"
-                   + "Task:     " + g_current_task + "\n"
-                   + "Anti-AFK: " + (g_anti_afk_active ? "ON" : "OFF") + "\n"
-                   + "AutoShot: " + (g_auto_screen_active ? "ON" : "OFF");
+    if (g_gui) {
+        if (g_gui->is_visible()) {
+            g_gui->hide();
+        } else {
+            g_gui->show();
+        }
     }
-    MessageBoxA(NULL, agent_info.c_str(), "PC Manager Agent - Status", MB_OK | MB_ICONINFORMATION);
 }
 
-// Window procedure for hidden tray message-only window
+// WebSocket loop
+static void websocket_loop() {
+    log_message("websocket_loop thread started");
+    while (g_running) {
+        try {
+            bool activated = (AGENT_ID.find("pc-") == 0 && ACCESS_KEY.length() > 20);
+            std::string ws_url = SERVER_BASE_URL;
+            // Replace http:// with ws://
+            size_t pos = ws_url.find("http://");
+            if (pos != std::string::npos) ws_url.replace(pos, 7, "ws://");
+            pos = ws_url.find("https://");
+            if (pos != std::string::npos) ws_url.replace(pos, 8, "wss://");
+            ws_url += "/ws/status";
+
+            WebSocketClient ws;
+            bool connected = false;
+            if (activated) {
+                connected = ws.connect(ws_url + "?token=" + ACCESS_KEY, ACCESS_KEY, AGENT_ID);
+            } else {
+                std::string url = ws_url;
+                url += (url.find('?') == std::string::npos) ? "?" : "&";
+                url += "agent_id=" + AGENT_ID;
+                connected = ws.connect(url + "&access_key=" + ACCESS_KEY, ACCESS_KEY, AGENT_ID);
+            }
+
+            if (connected) {
+                log_message("WebSocket connected");
+                g_ws = &ws;
+
+                // Heartbeat over WS every HEARTBEAT_INTERVAL
+                auto next_hb = std::chrono::steady_clock::now();
+                while (g_running && ws.is_connected()) {
+                    auto now = std::chrono::steady_clock::now();
+                    if (now >= next_hb) {
+                        json hb;
+                        hb["event"] = "agent_heartbeat";
+                        hb["payload"] = heartbeat_payload();
+                        ws.send(hb.dump());
+                        next_hb = now + std::chrono::seconds(HEARTBEAT_INTERVAL);
+                    }
+
+                    std::string msg;
+                    if (ws.receive(msg, 100)) {
+                        if (!msg.empty()) {
+                            log_message("WS received: " + msg.substr(0, 200));
+                        }
+                    }
+                }
+                log_message("WebSocket disconnected");
+            } else {
+                log_message("WebSocket connection failed, retrying in 10s");
+            }
+        } catch (const std::exception& e) {
+            log_message(std::string("WebSocket error: ") + e.what());
+        } catch (...) {
+            log_message("Unknown WebSocket error");
+        }
+
+        // Reconnect delay
+        for (int i = 0; i < 100 && g_running; ++i) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    }
+    g_ws = nullptr;
+    log_message("websocket_loop thread stopping");
+}
+
+// Window procedure for tray message window
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
     case WM_TRAYICON:
@@ -451,24 +587,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             POINT curPoint;
             GetCursorPos(&curPoint);
             HMENU hMenu = CreatePopupMenu();
-            InsertMenuW(hMenu, 0, MF_BYPOSITION | MF_GRAYED, ID_TRAY_STATUS, L"PC Manager Agent");
-            InsertMenuW(hMenu, 1, MF_BYPOSITION | MF_STRING, ID_TRAY_EXIT, L"\u0412\u044b\u0445\u043e\u0434");
+            InsertMenuW(hMenu, 0, MF_BYPOSITION | MF_STRING, ID_TRAY_STATUS, L"\u041e\u0442\u043a\u0440\u044b\u0442\u044c");
+            InsertMenuW(hMenu, 1, MF_BYPOSITION | MF_SEPARATOR, 0, L"");
+            InsertMenuW(hMenu, 2, MF_BYPOSITION | MF_STRING, ID_TRAY_EXIT, L"\u0412\u044b\u0445\u043e\u0434");
             SetForegroundWindow(hWnd);
             TrackPopupMenu(hMenu, TPM_LEFTALIGN | TPM_BOTTOMALIGN, curPoint.x, curPoint.y, 0, hWnd, NULL);
             DestroyMenu(hMenu);
         }
         if (lParam == WM_LBUTTONDBLCLK || lParam == WM_LBUTTONUP) {
-            std::thread(show_status_window).detach();
+            show_status_window();
         }
         break;
     case WM_COMMAND:
+        if (LOWORD(wParam) == ID_TRAY_STATUS) {
+            show_status_window();
+        }
         if (LOWORD(wParam) == ID_TRAY_EXIT) {
+            if (g_gui) g_gui->hide();
             g_running = false;
             PostQuitMessage(0);
         }
         break;
     case WM_DESTROY:
         Shell_NotifyIconA(NIM_DELETE, &g_nid);
+        if (g_gui) g_gui->hide();
         PostQuitMessage(0);
         break;
     default:
@@ -546,22 +688,37 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     std::thread tk_thread(task_loop);
     std::thread afk_thread(anti_afk_loop);
     std::thread scr_thread(auto_screen_loop);
-    log_message("Threads launched. Entering message loop...");
+    std::thread ws_thread(websocket_loop);
+    log_message("Threads launched.");
 
-    // Win32 Message loop
+    // Create and show main GUI window
+    AgentGUI gui(hInstance, AGENT_ID);
+    g_gui = &gui;
+    if (gui.create()) {
+        gui.show();
+        log_message("Main GUI window created and shown");
+    } else {
+        log_message("Failed to create main GUI window");
+    }
+
+    // Win32 Message loop — handles both tray and GUI messages
     MSG msg;
     while (GetMessage(&msg, NULL, 0, 0)) {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
+        if (!IsWindow(gui.get_handle()) || !IsDialogMessage(gui.get_handle(), &msg)) {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
     }
 
     // Clean up
     g_running = false;
+    g_gui = nullptr;
     
     if (hb_thread.joinable()) hb_thread.join();
     if (tk_thread.joinable()) tk_thread.join();
     if (afk_thread.joinable()) afk_thread.join();
     if (scr_thread.joinable()) scr_thread.join();
+    if (ws_thread.joinable()) ws_thread.join();
 
     // Shutdown GDI+ after all threads are done
     WinUtils::gdiplus_shutdown();

@@ -9,11 +9,15 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
+#include <cctype>
+#include <iphlpapi.h>
 
 #pragma comment(lib, "gdiplus.lib")
 #pragma comment(lib, "psapi.lib")
 #pragma comment(lib, "user32.lib")
 #pragma comment(lib, "ole32.lib")
+#pragma comment(lib, "iphlpapi.lib")
+#pragma comment(lib, "ws2_32.lib")
 
 namespace WinUtils {
 
@@ -141,8 +145,43 @@ json get_system_info() {
     ULONGLONG uptime_ms = GetTickCount64();
     info["uptime_seconds"] = uptime_ms / 1000;
 
-    // Simulated CPU percent (simplifies native thread sampling)
-    info["cpu_percent"] = 5.0;
+    // Calculate real CPU usage percentage
+    static FILETIME s_prev_idle_time = { 0 };
+    static FILETIME s_prev_kernel_time = { 0 };
+    static FILETIME s_prev_user_time = { 0 };
+
+    FILETIME idle_time, kernel_time, user_time;
+    double cpu_val = 5.0; // fallback
+    if (GetSystemTimes(&idle_time, &kernel_time, &user_time)) {
+        ULONGLONG idle = ((ULONGLONG)idle_time.dwHighDateTime << 32) | idle_time.dwLowDateTime;
+        ULONGLONG kernel = ((ULONGLONG)kernel_time.dwHighDateTime << 32) | kernel_time.dwLowDateTime;
+        ULONGLONG user = ((ULONGLONG)user_time.dwHighDateTime << 32) | user_time.dwLowDateTime;
+
+        ULONGLONG prev_idle = ((ULONGLONG)s_prev_idle_time.dwHighDateTime << 32) | s_prev_idle_time.dwLowDateTime;
+        ULONGLONG prev_kernel = ((ULONGLONG)s_prev_kernel_time.dwHighDateTime << 32) | s_prev_kernel_time.dwLowDateTime;
+        ULONGLONG prev_user = ((ULONGLONG)s_prev_user_time.dwHighDateTime << 32) | s_prev_user_time.dwLowDateTime;
+
+        ULONGLONG idle_diff = idle - prev_idle;
+        ULONGLONG kernel_diff = kernel - prev_kernel;
+        ULONGLONG user_diff = user - prev_user;
+
+        ULONGLONG total_diff = kernel_diff + user_diff;
+
+        s_prev_idle_time = idle_time;
+        s_prev_kernel_time = kernel_time;
+        s_prev_user_time = user_time;
+
+        if (total_diff > 0) {
+            if (total_diff >= idle_diff) {
+                cpu_val = (double)(total_diff - idle_diff) / total_diff * 100.0;
+            } else {
+                cpu_val = 0.0;
+            }
+        } else {
+            cpu_val = 0.0;
+        }
+    }
+    info["cpu_percent"] = cpu_val;
 
     return info;
 }
@@ -281,6 +320,10 @@ static WORD GetVirtualKey(const std::string& key) {
     if (k == "shift") return VK_SHIFT;
     if (k == "ctrl") return VK_CONTROL;
     if (k == "tab") return VK_TAB;
+    if (k == "up") return VK_UP;
+    if (k == "down") return VK_DOWN;
+    if (k == "left") return VK_LEFT;
+    if (k == "right") return VK_RIGHT;
     if (k.length() == 1) {
         SHORT vk = VkKeyScanA(k[0]);
         if (vk != -1) return vk & 0xFF;
@@ -292,14 +335,24 @@ bool press_key(const std::string& key, int duration_ms) {
     WORD vk = GetVirtualKey(key);
     if (vk == 0) return false;
 
+    // Map virtual key to scan code for DirectX compatibility (e.g. GTA 5 RP)
+    WORD scan = (WORD)MapVirtualKeyA(vk, MAPVK_VK_TO_VSC);
+
     INPUT input = { 0 };
     input.type = INPUT_KEYBOARD;
     input.ki.wVk = vk;
+    input.ki.wScan = scan;
+    input.ki.dwFlags = 0;
+    if (vk == VK_LEFT || vk == VK_RIGHT || vk == VK_UP || vk == VK_DOWN ||
+        vk == VK_INSERT || vk == VK_DELETE || vk == VK_HOME || vk == VK_END ||
+        vk == VK_PRIOR || vk == VK_NEXT) {
+        input.ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
+    }
     SendInput(1, &input, sizeof(INPUT));
 
     Sleep(duration_ms);
 
-    input.ki.dwFlags = KEYEVENTF_KEYUP;
+    input.ki.dwFlags |= KEYEVENTF_KEYUP;
     SendInput(1, &input, sizeof(INPUT));
     return true;
 }
@@ -361,9 +414,14 @@ bool trigger_shutdown(int minutes) {
     return run_hidden_cmd(cmd.str());
 }
 
+bool trigger_restart(int seconds) {
+    std::stringstream cmd;
+    cmd << "shutdown /r /t " << seconds;
+    return run_hidden_cmd(cmd.str());
+}
+
 bool cancel_shutdown() {
     return run_hidden_cmd("shutdown /a");
-
 }
 
 void anti_afk_tick() {
@@ -396,6 +454,92 @@ bool is_steam_running() {
     }
     CloseHandle(hSnapshot);
     return running;
+}
+
+bool get_battery_percent(int& percent, bool& charging) {
+    SYSTEM_POWER_STATUS sps;
+    if (!GetSystemPowerStatus(&sps)) return false;
+    if (sps.BatteryLifePercent > 100) return false;
+    percent = sps.BatteryLifePercent;
+    charging = (sps.ACLineStatus == 1);
+    return true;
+}
+
+json get_battery_info() {
+    json info;
+    SYSTEM_POWER_STATUS sps;
+    if (GetSystemPowerStatus(&sps)) {
+        if (sps.BatteryLifePercent <= 100) {
+            info["percent"] = (int)sps.BatteryLifePercent;
+        }
+        info["ac_status"] = (sps.ACLineStatus == 1) ? "plugged" : (sps.ACLineStatus == 0) ? "unplugged" : "unknown";
+        info["charging"] = (sps.ACLineStatus == 1);
+        info["status"] = (sps.BatteryFlag == 1) ? "high" : 
+                         (sps.BatteryFlag == 2) ? "low" : 
+                         (sps.BatteryFlag == 4) ? "critical" : 
+                         (sps.BatteryFlag == 8) ? "charging" : 
+                         (sps.BatteryFlag == 128) ? "no_battery" : "unknown";
+    } else {
+        info["status"] = "no_battery";
+    }
+    return info;
+}
+
+json get_network_info() {
+    json info;
+    info["hostname"] = "";
+    info["ip_address"] = "";
+    info["gateway"] = "";
+    info["mac_address"] = "";
+
+    char hostname[256] = { 0 };
+    DWORD hostSize = sizeof(hostname);
+    if (GetComputerNameA(hostname, &hostSize)) {
+        info["hostname"] = std::string(hostname);
+    }
+
+    // Get IP and MAC via GetAdaptersInfo
+    IP_ADAPTER_INFO adapter_info[16];
+    DWORD dwBufLen = sizeof(adapter_info);
+    if (GetAdaptersInfo(adapter_info, &dwBufLen) == NO_ERROR) {
+        PIP_ADAPTER_INFO pAdapter = adapter_info;
+        while (pAdapter) {
+            if (pAdapter->Type == MIB_IF_TYPE_ETHERNET || pAdapter->Type == 71) {
+                std::string ip = pAdapter->IpAddressList.IpAddress.String;
+                if (!ip.empty() && ip != "0.0.0.0") {
+                    info["ip_address"] = ip;
+                    info["gateway"] = std::string(pAdapter->GatewayList.IpAddress.String);
+                    // Format MAC
+                    char mac[18];
+                    snprintf(mac, sizeof(mac), "%02X:%02X:%02X:%02X:%02X:%02X",
+                        pAdapter->Address[0], pAdapter->Address[1],
+                        pAdapter->Address[2], pAdapter->Address[3],
+                        pAdapter->Address[4], pAdapter->Address[5]);
+                    info["mac_address"] = std::string(mac);
+                    break;
+                }
+            }
+            pAdapter = pAdapter->Next;
+        }
+    }
+
+    return info;
+}
+
+std::string get_system_uptime_str() {
+    DWORD ticks = GetTickCount();
+    DWORD secs = ticks / 1000;
+    DWORD mins = secs / 60;
+    DWORD hours = mins / 60;
+    DWORD days = hours / 24;
+    
+    char buf[64];
+    if (days > 0) {
+        snprintf(buf, sizeof(buf), "%dd %dh %dm", days, hours % 24, mins % 60);
+    } else {
+        snprintf(buf, sizeof(buf), "%dh %dm", hours, mins % 60);
+    }
+    return std::string(buf);
 }
 
 }

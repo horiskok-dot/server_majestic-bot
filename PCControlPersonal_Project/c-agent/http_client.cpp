@@ -4,6 +4,7 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <vector>
 
 #pragma comment(lib, "winhttp.lib")
 
@@ -81,7 +82,7 @@ HttpResponse HttpClient::request(const std::string& method, const std::string& p
     HttpResponse response = { 0, "" };
 
     HINTERNET hSession = WinHttpOpen(L"PCManagerAgentCPP/1.0",
-                                    WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+                                    WINHTTP_ACCESS_TYPE_NO_PROXY,
                                     WINHTTP_NO_PROXY_NAME,
                                     WINHTTP_NO_PROXY_BYPASS, 0);
     if (!hSession) return response;
@@ -95,7 +96,12 @@ HttpResponse HttpClient::request(const std::string& method, const std::string& p
     // Set timeouts: resolve=5s, connect=5s, send=8s, receive=8s
     WinHttpSetTimeouts(hSession, 5000, 5000, 8000, 8000);
 
-    std::wstring wpath = to_wstring(path);
+    // Append access_key as query param
+    std::string qpath = path;
+    std::string sep = (path.find('?') == std::string::npos) ? "?" : "&";
+    qpath += sep + "access_key=" + access_key_;
+
+    std::wstring wpath = to_wstring(qpath);
     std::wstring wmethod = to_wstring(method);
 
     DWORD flags = is_https_ ? WINHTTP_FLAG_SECURE : 0;
@@ -108,7 +114,7 @@ HttpResponse HttpClient::request(const std::string& method, const std::string& p
         return response;
     }
 
-    // Set headers
+    // Set headers via WinHttpAddRequestHeaders (more reliable than lpszHeaders)
     std::map<std::string, std::string> headers = get_auth_headers();
     for (const auto& pair : custom_headers) {
         headers[pair.first] = pair.second;
@@ -118,16 +124,18 @@ HttpResponse HttpClient::request(const std::string& method, const std::string& p
         headers["Content-Type"] = "application/json; charset=utf-8";
     }
 
-    std::wstringstream header_ss;
     for (const auto& pair : headers) {
-        header_ss << to_wstring(pair.first) << L": " << to_wstring(pair.second) << L"\r\n";
+        std::wstring header_line = to_wstring(pair.first) + L": " + to_wstring(pair.second);
+        WinHttpAddRequestHeaders(hRequest, header_line.c_str(), (DWORD)header_line.length(),
+                                 WINHTTP_ADDREQ_FLAG_ADD | WINHTTP_ADDREQ_FLAG_REPLACE);
     }
-    std::wstring header_str = header_ss.str();
 
+    LPVOID optional_data = json_body.empty() ? NULL : (LPVOID)json_body.c_str();
+    DWORD data_length = (DWORD)json_body.length();
     BOOL bResults = WinHttpSendRequest(hRequest,
-                                       header_str.c_str(), (DWORD)header_str.length(),
-                                       (LPVOID)json_body.c_str(), (DWORD)json_body.length(),
-                                       (DWORD)json_body.length(), 0);
+                                       WINHTTP_NO_ADDITIONAL_HEADERS, 0,
+                                       optional_data, data_length,
+                                       data_length, 0);
 
     if (bResults) {
         bResults = WinHttpReceiveResponse(hRequest, NULL);

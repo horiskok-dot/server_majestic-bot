@@ -19,7 +19,12 @@ namespace WinUtils {
     bool double_click_at(int x, int y);
     bool move_mouse(int dx, int dy);
     bool trigger_shutdown(int minutes);
+    bool trigger_restart(int seconds);
     bool cancel_shutdown();
     void anti_afk_tick();
     bool is_steam_running();
+    json get_battery_info();
+    json get_network_info();
+    std::string get_system_uptime_str();
+    bool get_battery_percent(int& percent, bool& charging);
 }
